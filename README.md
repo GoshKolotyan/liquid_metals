@@ -23,5 +23,5 @@ This project uses machine learning techniques to predict the melting points of l
 - [ ] Test Attention
 - [ ] Implement MultiHeadAttention
 - [ ] Build model (Attention, RegressionHead)
-- [✅] Create Dataloader and Dataset classes
+- [x] Create Dataloader and Dataset classes
 - [ ] Test before Training (Is attention working as expected)
