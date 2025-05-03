@@ -36,7 +36,8 @@ class LM_feature_extractor:
         R = 8.314  # J/(mol*K)
         mix_entropy = 0.0
         for _, concentration in elements_fractions:
-            mix_entropy += concentration * math.log(concentration)
+            if concentration > 0:
+                mix_entropy += concentration * math.log(concentration)
         mix_entropy = -R * mix_entropy
         return mix_entropy
         
@@ -97,18 +98,18 @@ class LM_feature_extractor:
         electronegativity_difference = self.calculate_electronegativity_difference(elements_fractions)
         atomic_radius_difference = self.calculate_atomic_radius_difference(elements_fractions)
         melting_point_difference = self.calculate_melting_point_difference(elements_fractions)
-        print("Elements and fractions:", elements_fractions)
-        print("Mixing enthalpy:", mix_enthalpy)
-        print("Entropy of mixing:", entropy_of_mixing)
-        print("Electronegativity difference:", electronegativity_difference)
-        print("Atomic radius difference:", atomic_radius_difference)
+        # print("Elements and fractions:", elements_fractions)
+        # print("Mixing enthalpy:", mix_enthalpy)
+        # print("Entropy of mixing:", entropy_of_mixing)
+        # print("Electronegativity difference:", electronegativity_difference)
+        # print("Atomic radius difference:", atomic_radius_difference)
 
         return [entropy_of_mixing, mix_enthalpy, electronegativity_difference, 
                 atomic_radius_difference, melting_point_difference]
 
-# Example usage
-if __name__ == "__main__":
-    feature_extractor = LM_feature_extractor()
-    example = "Sn13.3Bi50Cd10Pb26.7"
-    features = feature_extractor(example)
-    print("Features:", features)
+# # Example usage
+# if __name__ == "__main__":
+#     feature_extractor = LM_feature_extractor()
+#     example = "Sn13.3Bi50Cd10Pb26.7"
+#     features = feature_extractor(example)
+#     print("Features:", features)
