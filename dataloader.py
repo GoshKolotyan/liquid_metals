@@ -1,11 +1,11 @@
 import torch
-# from tokenizer import LM_Tokenizer 
+from tokenizer import LM_Tokenizer 
 from torch.utils.data import Dataset, DataLoader
 
 class LM_Dataset(Dataset):
-    def __init__(self, data_path, tokenizer_class):
+    def __init__(self, data_path):
         self.data = []
-        self.tokenizer = tokenizer_class
+        self.tokenizer = LM_Tokenizer()
         
         with open(data_path, 'r') as f:
             lines = f.readlines()
@@ -43,6 +43,10 @@ def collate_fn(batch):
     
     return padded_tokens, targets
 
+# DS = LM_Dataset(data_path="Data/cleaned_data.csv")
+
+# train_loader = DataLoader(dataset=DS, batch_size=2)
+
 
 # for batch in train_loader:
 #     composition_tensor, target_tensor = batch
@@ -50,3 +54,4 @@ def collate_fn(batch):
 #     print("Batch target tensor shape:", target_tensor.shape)
 #     print("Batch composition tensor:\n", composition_tensor)
 #     print("Batch target tensor:\n", target_tensor)
+#     break

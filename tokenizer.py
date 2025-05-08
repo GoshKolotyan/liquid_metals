@@ -30,7 +30,7 @@ class LM_Tokenizer:
         return torch.tensor(output, dtype=torch.float32), torch.tensor([target], dtype=torch.float32)
 
 
-# # Encode composition
+# Encode composition
 # LM_Tokenizer = LM_Tokenizer()
 # composition = "Sn14.0Bi36In25.0Ag25.0"
 # print("Composition:", composition, "Target:", 0.1)
