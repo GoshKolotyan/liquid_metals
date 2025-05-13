@@ -1,0 +1,19 @@
+config:
+  batch_size: 256
+  description: Transformer model for chemical property prediction
+  dropout: 0.1
+  gradient_clip: 0.3
+  hidden_dim: 128
+  learning_rate: 0.005
+  max_seq_length: 512
+  model_name: ChemicalTransformerDemo
+  model_version: 0.0.1
+  num_epochs: 300
+  num_heads: 16
+  num_layers: 4
+  num_workers: 20
+  patience: 25
+  seed: 42
+  test_path: ./Data/Component_Stratified_Split/test.csv
+  train_path: ./Data/Component_Stratified_Split/train.csv
+  valid_path: ./Data/Component_Stratified_Split/valid.csv
