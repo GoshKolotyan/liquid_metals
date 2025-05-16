@@ -1008,7 +1008,7 @@ from pathlib import Path
 
 def main():
     # Model checkpoint directory
-    checkpoint_dir = 'checkpoints/ChemicalTransformerDemo_v0.0.1_16_20250513_200522'
+    checkpoint_dir = 'checkpoints/ChemicalTransformer_v2.4.0_20250513_200522'
     config_path = os.path.join(checkpoint_dir, 'config.json')
     
     # Load configuration with proper error handling
@@ -1029,10 +1029,10 @@ def main():
     model_path = os.path.join(checkpoint_dir, 'final_model.pt')
 
     
-    test_path = 'Data/Component_Stratified_Split/test.csv'
+    test_path = 'Data/Component_Stratified_Split/test_set_for_low_temp.csv'
     
     # Create results directory
-    results_dir = "eval_results_V_4"
+    results_dir = "eval_results_V_8"
     Path(results_dir).mkdir(exist_ok=True)
     
     # Create evaluator with the loaded configs

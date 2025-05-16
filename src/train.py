@@ -12,7 +12,7 @@ class ChemicalTransformerLightning(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
         
-        self.save_hyperparameters(config.as_dict())
+        self.save_hyperparameters(config)
         self.model = None
         self.feature_dim = None
         

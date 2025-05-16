@@ -48,7 +48,7 @@ def setup_checkpoints(checkpoint_dir, patience):
 
 def main(config):
     # Set precision for matrix multiplications
-    torch.set_float32_matmul_precision('medium')
+    torch.set_float32_matmul_precision('highest')
     
     # Set seed for reproducibility
     pl.seed_everything(config.seed)

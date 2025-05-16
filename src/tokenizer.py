@@ -5,7 +5,7 @@ from helper import parse_compostion, LM_feature_extractor
 
 class LM_Tokenizer:
     def __init__(self):
-        self.vocab = json.load(open("./Data/elements_vocab.json"))
+        self.vocab = json.load(open("./configs/elements_vocab.json"))
         self.vocab_size = len(self.vocab)
         self.feature_extractor = LM_feature_extractor()
 
@@ -21,7 +21,7 @@ class LM_Tokenizer:
             output.append([
                 self.vocab[element]['atomic_number'] if element in self.vocab else 0,
                 fraction,
-                self.vocab[element]["atomic radius"] if element in self.vocab else 0,
+                self.vocab[element]["atomic_radius"] if element in self.vocab else 0,
                 self.vocab[element]['electronegativity'] if element in self.vocab else 0,
                 self.vocab[element]['melting_point'] if element in self.vocab else 0,
             ])

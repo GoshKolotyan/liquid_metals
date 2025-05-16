@@ -39,22 +39,22 @@ def collate_fn(batch):
     
     return padded_tokens, targets
 
-# DS = LM_Dataset(data_path="Data/example.csv")
-
-# sample_data = DS[0]
+train = LM_Dataset(data_path="Data/example.csv")
+valid = LM_Dataset(data_path="Data/Component_Stratified_Split/valid.csv")
 # print(sample_data)
 # print(sample_data[0].shape[1])
 
-# train_loader = DataLoader(dataset=DS, batch_size=2)
+train_loader = DataLoader(dataset=train, batch_size=1)
+# valid_load = DataLoader(dataset=valid, batch_size=2048)
 
 
-# for batch in train_loader:
-#     composition_tensor, target_tensor = batch
-#     print("Batch composition tensor shape:", composition_tensor.shape)
-#     print("Batch target tensor shape:", target_tensor.shape)
-#     print("Batch composition tensor:\n", composition_tensor)
-#     print("Batch target tensor:\n", target_tensor)
-#     break
+for batch in train_loader:
+    composition_tensor, target_tensor = batch
+    print("Batch composition tensor shape:", composition_tensor.shape)
+    print("Batch target tensor shape:", target_tensor.shape)
+    print("Batch composition tensor:\n", composition_tensor)
+    print("Batch target tensor:\n", batch)
+    break
 
 
 

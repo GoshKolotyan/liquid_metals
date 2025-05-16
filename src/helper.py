@@ -174,7 +174,7 @@ def parse_compostion(composition: str) -> list[tuple[str, float]]:
     return elements_fractions
 
 class LM_feature_extractor:
-    def __init__(self, vocab_path="./Data/elements_vocab.json"):
+    def __init__(self, vocab_path="./configs/elements_vocab.json"):
         self.length = 5
         self.vocab = json.load(open(vocab_path))
         
@@ -212,11 +212,11 @@ class LM_feature_extractor:
         valid_elements = [(element, fraction) for element, fraction in elements_fractions if element and fraction > 0]
         
         # Calculate average atomic radius
-        avg = sum([self.vocab[element]['atomic radius'] * fraction for element, fraction in valid_elements])
+        avg = sum([self.vocab[element]['atomic_radius'] * fraction for element, fraction in valid_elements])
         
         res = 0
         for element, fraction in valid_elements:
-            ratio = self.vocab[element]['atomic radius'] / avg  # Fixed key name
+            ratio = self.vocab[element]['atomic_radius'] / avg  # Fixed key name
             term = fraction * (1 - ratio)**2
             res += term
             
