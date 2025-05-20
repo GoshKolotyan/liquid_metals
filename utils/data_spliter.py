@@ -336,13 +336,13 @@ class DataSpliter:
 
 
 if __name__ == "__main__":
-    example_df = pd.read_csv('./Data/Merged_All.csv')
+    example_df = pd.read_csv('../Data/Merged_All.csv')
     
     splitter = DataSpliter(example_df)
     
 
     train, valid, test = splitter(
-        output_dir='./Data/Component_Stratified_Split',
+        output_dir='../Data/Component_Stratified_Split',
         random_state=123,
         save=True,
         verbose=True
