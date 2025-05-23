@@ -1,7 +1,7 @@
 import os 
 import pandas as pd
 from itertools import permutations
-from helper import parse_compostion
+from parser import parse_compostion
 from sklearn.model_selection import train_test_split
 from collections import defaultdict
 
@@ -22,6 +22,9 @@ class DataSpliter:
         self.train_ratio = 80  # percentage
         self.valid_ratio = 10  # percentage
         self.test_ratio = 10   # percentage
+
+        self.usabel_elments = pd.read_json('./configs/elements_vocab.json').columns.tolist()
+        print(f"Usable elements: {self.usabel_elments}")
         self.parser = parse_compostion
     
     def count_components(self, composition):
@@ -47,7 +50,11 @@ class DataSpliter:
             for per in permutations(parsed):
                 res = ''
                 for comp, perc in per:
-                    res += f"{comp}" if perc == 1 else f"{comp}{perc}"
+                    if comp not in self.usabel_elments:
+                        res = ''
+                        break
+                    else:
+                        res += f"{comp}" if perc == 1 else f"{comp}{perc}"
                     
                 gens.append({'System_Name': res, 'Tm (Liquidus)': target})
 
@@ -263,9 +270,9 @@ class DataSpliter:
 
     def __call__(self, 
                     output_dir, 
-                    random_state=42, 
-                    save=True, 
-                    verbose=True):
+                    random_state, 
+                    save, 
+                    verbose):
             """Execute the complete pipeline with stratified component splitting"""
             if verbose:
                 print("Starting data augmentation and component-stratified splitting pipeline...")
@@ -336,13 +343,13 @@ class DataSpliter:
 
 
 if __name__ == "__main__":
-    example_df = pd.read_csv('../Data/Merged_All.csv')
+    example_df = pd.read_csv('./Data/Merged_All.csv')
     
     splitter = DataSpliter(example_df)
     
 
     train, valid, test = splitter(
-        output_dir='../Data/Component_Stratified_Split',
+        output_dir='./Data/Component_Stratified_Split_Based_on_Augmentation',
         random_state=123,
         save=True,
         verbose=True

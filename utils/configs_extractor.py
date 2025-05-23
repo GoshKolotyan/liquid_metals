@@ -3,7 +3,7 @@ from mendeleev import element
 from pprint import pprint
 import json 
 
-df = pd.read_excel('./Notebooks/update_Informative and Main Table 8.05.xlsx')
+df = pd.read_csv('./Data/Informative_table_21.05.final_filter.csv', delimiter=';')
 configs = df[['Pure metals', 'Electronegativity', "Atomic radius (pm)", "Melting temperature (°C)"]]
 
 metals_dict = {}
@@ -12,9 +12,9 @@ for _, row in configs.iterrows():
     metal_symbol = row['Pure metals']
     metals_dict[metal_symbol] = {
                     "atomic_number": element(metal_symbol).atomic_number,
-                    "electronegativity": row['Electronegativity'],
-                    "atomic_radius": row['Atomic radius (pm)'],
-                    "melting_point": row['Melting temperature (°C)'],
+                    "electronegativity": float(row['Electronegativity'].replace(',', '.')),
+                    "atomic_radius": float(row['Atomic radius (pm)']),
+                    "melting_point": float(row['Melting temperature (°C)'].replace(',', '.')),
                     # Add ionization energy when available
                     "ionization_energy": min(element(metal_symbol).ionenergies.values()) #minimum enegry value 
                 }
