@@ -1008,7 +1008,7 @@ from pathlib import Path
 
 def main():
     # Model checkpoint directory
-    checkpoint_dir = 'checkpoints/AlloyTransformer_v1.3.1'
+    checkpoint_dir = 'checkpoints/AlloyTransformer_v2.0.1'
     config_path = os.path.join(checkpoint_dir, 'config.json')
     
     # Load configuration with proper error handling
@@ -1032,7 +1032,7 @@ def main():
     test_path = 'Data/Component_Stratified_Split_Based_on_Augmentation/test.csv'
     
     # Create results directory
-    results_dir = "alloy_transformer_results_3"
+    results_dir = "alloy_transformer_results_4"
     Path(results_dir).mkdir(exist_ok=True)
     
     # Create evaluator with the loaded configs
