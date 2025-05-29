@@ -66,7 +66,25 @@ class AlloyTransformer(nn.Module):
             encoder_layer=encoder_layers, num_layers=num_layers
         )
 
+        
         # Regression head
+        # self.regression_head = nn.Sequential(
+        #     nn.Conv1d(
+        #         in_channels=d_model,
+        #         out_channels=dim_feedforward,
+        #         kernel_size=1,
+        #         bias=True,
+        #     ),
+        #     nn.ReLU(),
+        #     nn.BatchNorm1d(dim_feedforward),
+        #     nn.MaxPool1d(kernel_size=2, stride=2),
+        #     nn.Conv1d(
+        #         in_channels=dim_feedforward,
+        #         out_channels=1,
+        #         kernel_size=1,
+        #         bias=True,
+        #     ),
+        # )
         self.regression_head = nn.Sequential(
             nn.Linear(d_model, dim_feedforward),
             nn.ReLU(),

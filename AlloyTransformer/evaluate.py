@@ -1,3 +1,7 @@
+import os
+import json
+import datetime
+from pathlib import Path
 import torch
 import pytorch_lightning as pl
 import numpy as np
@@ -9,7 +13,7 @@ import pandas as pd
 import os
 import re
 from collections import defaultdict
-
+from glob import glob
 from dataloader import LM_Dataset, collate_fn
 from trainer import AlloyTransformerLightning  # Import the Lightning module
 
@@ -718,192 +722,11 @@ class CompositionEvaluator:
         # Save to CSV
         element_set_df.to_csv(os.path.join(self.save_dir, 'element_set_analysis.csv'), index=False)
         
-        # Visualize element set analysis
-        plt.figure(figsize=(14, 10))
-        
-        # Plot 1: Error by element set
-        ax1 = plt.subplot(2, 1, 1)
-        
-        # Limit to top 15 most common sets for readability
-        top_sets = element_set_df.head(15)
-        
-        bars = ax1.bar(top_sets['Element_Set'], top_sets['Mean_Error'])
-        
-        # Add error bars
-        ax1.errorbar(
-            top_sets['Element_Set'], 
-            top_sets['Mean_Error'],
-            yerr=top_sets['Std_Error'],
-            fmt='none', 
-            ecolor='black', 
-            capsize=5
-        )
-        
-        # Add count labels
-        for bar, count in zip(bars, top_sets['Count']):
-            height = bar.get_height()
-            ax1.text(bar.get_x() + bar.get_width()/2., height + 2,
-                    f'n={int(count)}', ha='center', va='bottom', rotation=0)
-        
-        ax1.set_xlabel('Element Combination', fontsize=12)
-        ax1.set_ylabel('Mean Absolute Error', fontsize=12)
-        ax1.set_title('Prediction Error by Element Combination', fontsize=14)
-        ax1.grid(True, alpha=0.3)
-        ax1.tick_params(axis='x', rotation=45)
-        
-        # Plot 2: Detailed analysis of top element sets
-        ax2 = plt.subplot(2, 1, 2)
-        
-        # Get top 5 most common element sets for detailed analysis
-        top_5_sets = element_set_df.head(5)['Element_Set'].tolist()
-        
-        # Create list of compositions for each set
-        detailed_data = []
-        
-        for set_name in top_5_sets:
-            element_names = set_name.split('-')
-            set_idx = element_set_to_idx[tuple(element_names)]
-            
-            set_compositions = self.results_df[self.results_df['Element_Set'] == set_idx]
-            
-            for idx, row in set_compositions.iterrows():
-                # Get the ratio of the first element to second element (for binary systems)
-                if len(element_names) == 2:
-                    # Make sure both columns exist before calculating ratio
-                    if f'{element_names[0]}_fraction' in self.results_df.columns and f'{element_names[1]}_fraction' in self.results_df.columns:
-                        ratio = row[f'{element_names[0]}_fraction'] / row[f'{element_names[1]}_fraction'] if row[f'{element_names[1]}_fraction'] > 0 else 0
-                    else:
-                        ratio = 0
-                else:
-                    ratio = 0
-                    
-                detailed_data.append({
-                    'Element_Set': set_name,
-                    'Composition': row['Composition'],
-                    'Actual': row['Actual'],
-                    'Predicted': row['Predicted'],
-                    'Error': row['Absolute_Error'],
-                    'Ratio': ratio
-                })
-        
-        detailed_df = pd.DataFrame(detailed_data)
-        
-        # For binary systems, plot error vs. element ratio
-        binary_sets = [s for s in top_5_sets if len(s.split('-')) == 2]
-        
-        if binary_sets:
-            for set_name in binary_sets:
-                set_data = detailed_df[detailed_df['Element_Set'] == set_name]
-                ax2.scatter(
-                    set_data['Ratio'], 
-                    set_data['Error'],
-                    label=set_name,
-                    s=50,
-                    alpha=0.7
-                )
-            
-            ax2.set_xlabel('Element Ratio (First/Second)', fontsize=12)
-            ax2.set_ylabel('Absolute Error', fontsize=12)
-            ax2.set_title('Error vs Element Ratio for Binary Systems', fontsize=14)
-            ax2.grid(True, alpha=0.3)
-            ax2.legend()
-        else:
-            # If no binary systems, create a different visualization
-            sns.boxplot(x='Element_Set', y='Error', data=detailed_df, ax=ax2)
-            ax2.set_xlabel('Element Combination', fontsize=12)
-            ax2.set_ylabel('Absolute Error', fontsize=12)
-            ax2.set_title('Error Distribution by Element Combination', fontsize=14)
-            ax2.tick_params(axis='x', rotation=45)
-        
-        plt.tight_layout()
-        plt.savefig(os.path.join(self.save_dir, 'element_set_analysis.png'), dpi=300, bbox_inches='tight')
-        plt.close()
-        
-        # Create scatter plots for top binary systems
-        if binary_sets:
-            for set_name in binary_sets[:3]:  # Limit to top 3 for brevity
-                try:
-                    plt.figure(figsize=(14, 7))
-                    
-                    set_data = detailed_df[detailed_df['Element_Set'] == set_name]
-                    element_names = set_name.split('-')
-                    
-                    # Make sure all required columns exist
-                    missing_columns = []
-                    for element in element_names:
-                        if f'{element}_fraction' not in self.results_df.columns:
-                            missing_columns.append(f'{element}_fraction')
-                    
-                    if missing_columns:
-                        print(f"Warning: Missing columns {missing_columns} for {set_name} analysis. Skipping.")
-                        continue
-                    
-                    # Plot 1: Error vs first element fraction
-                    ax1 = plt.subplot(1, 2, 1)
-                    
-                    # Safely get element fractions
-                    element_fractions = []
-                    for _, row in set_data.iterrows():
-                        # Get the composition for this row
-                        comp_str = row['Composition']
-                        # Parse the composition to get element fractions
-                        comp_dict = parse_composition(comp_str)
-                        # Get the fraction for the first element
-                        element_fractions.append(comp_dict.get(element_names[0], 0.0))
-                    
-                    scatter = ax1.scatter(
-                        element_fractions,
-                        set_data['Error'],
-                        c=set_data['Actual'],
-                        cmap='viridis',
-                        s=70,
-                        alpha=0.8
-                    )
-                    
-                    ax1.set_xlabel(f'{element_names[0]} Fraction', fontsize=12)
-                    ax1.set_ylabel('Absolute Error', fontsize=12)
-                    ax1.set_title(f'Error vs {element_names[0]} Content for {set_name}', fontsize=14)
-                    ax1.grid(True, alpha=0.3)
-                    
-                    cbar = plt.colorbar(scatter, ax=ax1)
-                    cbar.set_label('Actual Temperature (K)', fontsize=12)
-                    
-                    # Plot 2: Actual vs Predicted for this system
-                    ax2 = plt.subplot(1, 2, 2)
-                    
-                    scatter = ax2.scatter(
-                        set_data['Actual'],
-                        set_data['Predicted'],
-                        c=element_fractions,
-                        cmap='plasma',
-                        s=70,
-                        alpha=0.8
-                    )
-                    
-                    # Add perfect prediction line
-                    min_val = min(set_data['Actual'].min(), set_data['Predicted'].min())
-                    max_val = max(set_data['Actual'].max(), set_data['Predicted'].max())
-                    ax2.plot([min_val, max_val], [min_val, max_val], 'k--', alpha=0.7)
-                    
-                    ax2.set_xlabel('Actual Temperature (K)', fontsize=12)
-                    ax2.set_ylabel('Predicted Temperature (K)', fontsize=12)
-                    ax2.set_title(f'Predicted vs Actual for {set_name}', fontsize=14)
-                    ax2.grid(True, alpha=0.3)
-                    
-                    cbar = plt.colorbar(scatter, ax=ax2)
-                    cbar.set_label(f'{element_names[0]} Fraction', fontsize=12)
-                    
-                    plt.tight_layout()
-                    plt.savefig(os.path.join(self.save_dir, f'binary_analysis_{set_name}.png'), dpi=300, bbox_inches='tight')
-                    plt.close()
-                except Exception as e:
-                    print(f"Error creating binary analysis for {set_name}: {str(e)}")
-                    continue
-        
         print("\nElement Set Analysis (Top 10):")
         print(element_set_df.head(10))
         
         return element_set_df
+
     def save_results(self):
         """Save all evaluation results"""
         if self.results_df is None:
@@ -930,26 +753,7 @@ class CompositionEvaluator:
                 else:
                     f.write(f"{key}: {value}\n")
         
-        print(f"\nResults saved to {self.save_dir}/ folder:")
-        print("- test_predictions_detailed.csv")
-        print("- error_by_primary_element.csv")
-        print("- worst_predictions.csv")
-        print("- evaluation_summary.txt")
-        print("- test_evaluation_plots.png")
-        print("- composition_error_analysis.png")
-        print("- element_count_analysis.csv")
-        print("- element_count_analysis.png")
-        print("- entropy_analysis.csv")
-        print("- entropy_analysis.png")
-        print("- element_set_analysis.csv")
-        print("- element_set_analysis.png")
-        
-        # List binary system analysis files
-        binary_files = [f for f in os.listdir(self.save_dir) if f.startswith('binary_analysis_')]
-        if binary_files:
-            print("- Binary system analyses:")
-            for f in binary_files:
-                print(f"  - {f}")
+        print(f"\nResults saved to {self.save_dir}/ folder")
     
     def run_full_evaluation(self):
         """Run complete evaluation pipeline with enhanced element analysis"""
@@ -958,7 +762,7 @@ class CompositionEvaluator:
         # Get predictions
         self.predict()
         
-        print("Metrics Calulcations")
+        print("Calculating metrics...")
         # Calculate metrics
         self.calculate_metrics()
         
@@ -989,26 +793,429 @@ class CompositionEvaluator:
         print("Saving results...")
         self.save_results()
         
-        # Additional information to console
-        print("\nTop 10 Worst Predictions:")
-        print("Composition | Primary Element | Actual | Predicted | Error")
-        print("-" * 70)
-        
-        worst_10 = self.results_df.nlargest(10, 'Absolute_Error')
-        for _, row in worst_10.iterrows():
-            print(f"{row['Composition']:<20} | {row['Primary_Element']:<15} | {row['Actual']:6.2f} | {row['Predicted']:9.2f} | {row['Absolute_Error']:5.2f}")
-        
         return self.results_df, self.summary_stats
 
 
-import os
-import json
-import datetime
-from pathlib import Path
+class DiagramEvaluator:
+    def __init__(self, paths: str, model):
+        self.paths = paths
+        self.model = model
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        
+        # Load diagrams from CSV files
+        self.diagrams = []
+        csv_files = glob(os.path.join(paths, "**/*.csv"), recursive=True)
+        
+        if not csv_files:
+            print(f"Warning: No CSV files found in {paths}")
+            return
+            
+        print(f"Found {len(csv_files)} CSV files in {paths}")
+        
+        for csv_file in csv_files:
+            try:
+                df = pd.read_csv(csv_file)
+                # Add filename as metadata
+                df['source_file'] = os.path.basename(csv_file)
+                self.diagrams.append(df)
+                print(f"Loaded diagram from {os.path.basename(csv_file)} with {len(df)} points")
+            except Exception as e:
+                print(f"Error loading {csv_file}: {str(e)}")
+        
+        if not self.diagrams:
+            print("No valid diagrams loaded!")
+            return
+            
+        # Combine all diagrams
+        self.combined_diagram = pd.concat(self.diagrams, ignore_index=True)
+        print(f"Combined diagram has {len(self.combined_diagram)} total points")
+        
+        # Initialize results storage
+        self.predictions = {}
+        self.targets = {}
+        self.compositions = {}
+        
+    def prepare_data_for_prediction(self, df):
+        """
+        Prepare diagram data for model prediction
+        Assumes the CSV has columns for composition and temperature
+        """
+        # Try to identify composition and temperature columns
+        composition_col = None
+        temperature_col = None
+        
+        # Common column names for composition
+        comp_names = ['composition', 'Composition', 'comp', 'alloy', 'formula']
+        for col in comp_names:
+            if col in df.columns:
+                composition_col = col
+                break
+        
+        # Common column names for temperature
+        temp_names = ['temperature', 'Temperature', 'temp', 'T', 'liquidus', 'Liquidus']
+        for col in temp_names:
+            if col in df.columns:
+                temperature_col = col
+                break
+        
+        if composition_col is None or temperature_col is None:
+            print(f"Warning: Could not identify composition and temperature columns")
+            print(f"Available columns: {list(df.columns)}")
+            # Try to use first two columns as fallback
+            if len(df.columns) >= 2:
+                composition_col = df.columns[0]
+                temperature_col = df.columns[1]
+                print(f"Using fallback: {composition_col} for composition, {temperature_col} for temperature")
+            else:
+                return None, None
+        
+        compositions = df[composition_col].tolist()
+        temperatures = df[temperature_col].tolist()
+        
+        return compositions, temperatures
+    
+    def create_dataset_from_compositions(self, compositions):
+        """
+        Create a dataset from compositions that can be fed to the model
+        This mimics the LM_Dataset structure
+        """
+        # Create a temporary CSV file with the compositions
+        temp_data = []
+        for comp in compositions:
+            # Use dummy temperature since we're only predicting
+            temp_data.append([comp, 1000.0])  # dummy temperature
+        
+        temp_df = pd.DataFrame(temp_data, columns=['composition', 'temperature'])
+        temp_file = os.path.join(self.paths, 'temp_diagram_data.csv')
+        temp_df.to_csv(temp_file, index=False)
+        
+        try:
+            # Create dataset
+            dataset = LM_Dataset(temp_file)
+            dataloader = DataLoader(dataset, batch_size=32, shuffle=False, collate_fn=collate_fn)
+            return dataloader
+        except Exception as e:
+            print(f"Error creating dataset: {str(e)}")
+            return None
+        finally:
+            # Clean up temp file
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+    
+    def predict_diagram(self, diagram_name=None):
+        """
+        Run model predictions on phase diagram data
+        """
+        if not self.diagrams:
+            print("No diagrams loaded!")
+            return
+        
+        # Set model to evaluation mode
+        self.model.eval()
+        self.model.to(self.device)
+        
+        # If specific diagram name is provided, predict only that one
+        if diagram_name:
+            target_diagrams = [df for df in self.diagrams if df['source_file'].iloc[0] == diagram_name]
+            if not target_diagrams:
+                print(f"Diagram {diagram_name} not found!")
+                return
+            diagrams_to_predict = target_diagrams
+        else:
+            diagrams_to_predict = self.diagrams
+        
+        for df in diagrams_to_predict:
+            source_file = df['source_file'].iloc[0]
+            print(f"Predicting diagram: {source_file}")
+            
+            # Prepare data
+            compositions, actual_temperatures = self.prepare_data_for_prediction(df)
+            if compositions is None:
+                continue
+            
+            # Create dataloader
+            dataloader = self.create_dataset_from_compositions(compositions)
+            if dataloader is None:
+                continue
+            
+            # Make predictions
+            predictions = []
+            with torch.no_grad():
+                for inputs, _ in dataloader:  # We ignore the dummy targets
+                    inputs = inputs.to(self.device)
+                    pred = self.model(inputs)
+                    
+                    # Handle different prediction shapes
+                    pred_numpy = pred.squeeze().cpu().numpy()
+                    
+                    # Ensure we have an iterable array
+                    if pred_numpy.ndim == 0:  # scalar
+                        predictions.append(float(pred_numpy))
+                    elif pred_numpy.ndim == 1:  # 1D array
+                        predictions.extend(pred_numpy.tolist())
+                    else:  # higher dimensional
+                        predictions.extend(pred_numpy.flatten().tolist())
+            
+            # Store results
+            self.predictions[source_file] = np.array(predictions)
+            self.targets[source_file] = np.array(actual_temperatures)
+            self.compositions[source_file] = compositions
+            
+            print(f"Completed predictions for {source_file}: {len(predictions)} points")
+    
+    def calculate_diagram_metrics(self, diagram_name=None):
+        """
+        Calculate metrics for phase diagram predictions
+        """
+        if diagram_name and diagram_name in self.predictions:
+            diagrams_to_analyze = [diagram_name]
+        else:
+            diagrams_to_analyze = list(self.predictions.keys())
+        
+        metrics_summary = {}
+        
+        for name in diagrams_to_analyze:
+            if name not in self.predictions:
+                continue
+                
+            pred = self.predictions[name]
+            target = self.targets[name]
+            
+            # Convert to numpy arrays if they aren't already
+            pred = np.array(pred)
+            target = np.array(target)
+            
+            # Ensure same length
+            min_len = min(len(pred), len(target))
+            pred = pred[:min_len]
+            target = target[:min_len]
+            
+            # Skip if we don't have enough data points
+            if min_len < 2:
+                print(f"Warning: Not enough data points for {name} (only {min_len} points)")
+                continue
+            
+            # Calculate metrics with error handling
+            try:
+                mae = mean_absolute_error(target, pred)
+                rmse = np.sqrt(mean_squared_error(target, pred))
+                r2 = r2_score(target, pred)
+                
+                # Percentage errors (avoid division by zero)
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    percentage_errors = np.abs((target - pred) / target) * 100
+                    # Remove infinite and NaN values
+                    percentage_errors = percentage_errors[np.isfinite(percentage_errors)]
+                    mean_percentage_error = np.mean(percentage_errors) if len(percentage_errors) > 0 else 0
+                
+                metrics_summary[name] = {
+                    'MAE': mae,
+                    'RMSE': rmse,
+                    'R2': r2,
+                    'Mean_Percentage_Error': mean_percentage_error,
+                    'Points': len(pred)
+                }
+                
+                print(f"\nMetrics for {name}:")
+                print(f"  MAE: {mae:.4f}")
+                print(f"  RMSE: {rmse:.4f}")
+                print(f"  R²: {r2:.4f}")
+                print(f"  Mean Percentage Error: {mean_percentage_error:.2f}%")
+                print(f"  Points: {len(pred)}")
+                
+            except Exception as e:
+                print(f"Error calculating metrics for {name}: {str(e)}")
+                continue
+        
+        return metrics_summary
+    
+    def plot_phase_diagram_comparison(self, diagram_name=None, save_dir="diagram_eval"):
+        """
+        Plot phase diagram comparisons between real and predicted values
+        """
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        
+        if diagram_name and diagram_name in self.predictions:
+            diagrams_to_plot = [diagram_name]
+        else:
+            diagrams_to_plot = list(self.predictions.keys())
+        
+        for name in diagrams_to_plot:
+            if name not in self.predictions:
+                continue
+                
+            pred = np.array(self.predictions[name])
+            target = np.array(self.targets[name])
+            compositions = self.compositions[name]
+            
+            # Ensure same length
+            min_len = min(len(pred), len(target), len(compositions))
+            if min_len < 2:
+                print(f"Warning: Not enough data points for {name} (only {min_len} points). Skipping plot.")
+                continue
+                
+            pred = pred[:min_len]
+            target = target[:min_len]
+            compositions = compositions[:min_len]
+            
+            try:
+                # Create figure with subplots
+                fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+                fig.suptitle(f'Phase Diagram Analysis: {name}', fontsize=16)
+                
+                # Plot 1: Predicted vs Actual scatter plot
+                ax1 = axes[0, 0]
+                ax1.scatter(target, pred, alpha=0.6, s=30)
+                min_val = min(target.min(), pred.min())
+                max_val = max(target.max(), pred.max())
+                ax1.plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=2, label='Perfect Prediction')
+                ax1.set_xlabel('Actual Temperature (K)')
+                ax1.set_ylabel('Predicted Temperature (K)')
+                ax1.set_title('Predicted vs Actual Values')
+                ax1.legend()
+                ax1.grid(True, alpha=0.3)
+                
+                # Plot 2: Phase diagram overlay
+                ax2 = axes[0, 1]
+                x_values = np.arange(len(target))  # Use index as x-axis for now
+                ax2.plot(x_values, target, 'o-', linewidth=2, markersize=4, 
+                        color='blue', alpha=0.7, label='Actual')
+                ax2.plot(x_values, pred, 's-', linewidth=2, markersize=4, 
+                        color='red', alpha=0.7, label='Predicted')
+                ax2.set_xlabel('Composition Index')
+                ax2.set_ylabel('Temperature (K)')
+                ax2.set_title('Phase Diagram Comparison')
+                ax2.legend()
+                ax2.grid(True, alpha=0.3)
+                
+                # Plot 3: Error distribution
+                ax3 = axes[1, 0]
+                errors = target - pred
+                ax3.hist(errors, bins=min(30, len(errors)//2), alpha=0.7, edgecolor='black')
+                ax3.set_xlabel('Prediction Error (K)')
+                ax3.set_ylabel('Frequency')
+                ax3.set_title(f'Error Distribution\nMean: {np.mean(errors):.2f}K, Std: {np.std(errors):.2f}K')
+                ax3.grid(True, alpha=0.3)
+                
+                # Plot 4: Error vs actual temperature
+                ax4 = axes[1, 1]
+                ax4.scatter(target, np.abs(errors), alpha=0.6, s=30)
+                ax4.set_xlabel('Actual Temperature (K)')
+                ax4.set_ylabel('Absolute Error (K)')
+                ax4.set_title('Absolute Error vs Actual Temperature')
+                ax4.grid(True, alpha=0.3)
+                
+                plt.tight_layout()
+                
+                # Save plot
+                safe_name = name.replace('.csv', '').replace(' ', '_').replace('/', '_')
+                plt.savefig(os.path.join(save_dir, f'phase_diagram_{safe_name}.png'), 
+                           dpi=300, bbox_inches='tight')
+                plt.close()
+                
+                print(f"Saved phase diagram analysis for {name}")
+                
+            except Exception as e:
+                print(f"Error creating plot for {name}: {str(e)}")
+                plt.close()
+                continue
+    
+    def save_diagram_results(self, save_dir="diagram_eval"):
+        """
+        Save phase diagram evaluation results
+        """
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        
+        # Save detailed predictions for each diagram
+        for name in self.predictions.keys():
+            if name not in self.predictions:
+                continue
+                
+            pred = np.array(self.predictions[name])
+            target = np.array(self.targets[name])
+            compositions = self.compositions[name]
+            
+            # Create results dataframe
+            min_len = min(len(pred), len(target), len(compositions))
+            if min_len == 0:
+                print(f"Warning: No data for {name}. Skipping.")
+                continue
+                
+            try:
+                results_df = pd.DataFrame({
+                    'Composition': compositions[:min_len],
+                    'Actual_Temperature': target[:min_len],
+                    'Predicted_Temperature': pred[:min_len],
+                    'Error': target[:min_len] - pred[:min_len],
+                    'Absolute_Error': np.abs(target[:min_len] - pred[:min_len])
+                })
+                
+                # Add percentage error with safe division
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    percentage_errors = np.abs((target[:min_len] - pred[:min_len]) / target[:min_len]) * 100
+                    percentage_errors = np.where(np.isfinite(percentage_errors), percentage_errors, 0)
+                    results_df['Percentage_Error'] = percentage_errors
+                
+                # Save to CSV
+                safe_name = name.replace('.csv', '').replace(' ', '_').replace('/', '_')
+                results_df.to_csv(os.path.join(save_dir, f'diagram_results_{safe_name}.csv'), index=False)
+                print(f"Saved results for {name}")
+                
+            except Exception as e:
+                print(f"Error saving results for {name}: {str(e)}")
+                continue
+        
+        # Save summary metrics
+        try:
+            metrics = self.calculate_diagram_metrics()
+            if metrics:
+                metrics_df = pd.DataFrame(metrics).T
+                metrics_df.to_csv(os.path.join(save_dir, 'diagram_metrics_summary.csv'))
+                print("Saved metrics summary")
+        except Exception as e:
+            print(f"Error saving metrics summary: {str(e)}")
+        
+        print(f"Diagram evaluation results saved to {save_dir}/")
+    
+    def run_full_diagram_evaluation(self, save_dir="diagram_eval"):
+        """
+        Run complete phase diagram evaluation pipeline
+        """
+        print("Starting phase diagram evaluation...")
+        
+        if not self.diagrams:
+            print("No diagrams to evaluate!")
+            return
+        
+        # Make predictions
+        print("Generating predictions...")
+        self.predict_diagram()
+        
+        if not self.predictions:
+            print("No predictions generated!")
+            return
+        
+        # Calculate metrics
+        print("Calculating metrics...")
+        metrics = self.calculate_diagram_metrics()
+        
+        # Create plots
+        print("Creating phase diagram plots...")
+        self.plot_phase_diagram_comparison(save_dir=save_dir)
+        
+        # Save results
+        print("Saving results...")
+        self.save_diagram_results(save_dir=save_dir)
+        
+        print(f"Phase diagram evaluation completed. Results saved to {save_dir}/")
+        return metrics
+
 
 def main():
     # Model checkpoint directory
-    checkpoint_dir = 'checkpoints/AlloyTransformer_v2.0.1'
+    checkpoint_dir = 'checkpoints/AlloyTransformer_L1_v0.0.1'
     config_path = os.path.join(checkpoint_dir, 'config.json')
     
     # Load configuration with proper error handling
@@ -1022,36 +1229,52 @@ def main():
         print(f"Error parsing JSON in {config_path}")
         return
     
-    # Generate timestamp for results directory
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    # Set model path and fallback option
+    # Set model path
     model_path = os.path.join(checkpoint_dir, 'final_model.pt')
-
+    test_path = 'Data/Component_Stratified_Split_Based_on_Augmentation/test_set_for_low_temp.csv'
+    diagrams_paths = "Created Data"
     
-    test_path = 'Data/Component_Stratified_Split_Based_on_Augmentation/test.csv'
+    # Create results directories
+    composition_results_dir = "alloy_transformer_results_6"
+    diagram_results_dir = "diagram_evaluation_results"
+    Path(composition_results_dir).mkdir(exist_ok=True)
+    Path(diagram_results_dir).mkdir(exist_ok=True)
     
-    # Create results directory
-    results_dir = "alloy_transformer_results_4"
-    Path(results_dir).mkdir(exist_ok=True)
+    # Load model once for both evaluators
+    print("Loading model...")
+    model = load_lightning_model(model_path, configs)
     
-    # Create evaluator with the loaded configs
+    # Run composition evaluation
+    print("\n" + "="*50)
+    print("COMPOSITION EVALUATION")
+    print("="*50)
+    
     evaluator = CompositionEvaluator(
         model_path=model_path,
         test_path=test_path,
-        config=configs,  # Using the correct variable name
-        save_dir=results_dir
+        config=configs,
+        save_dir=composition_results_dir
     )
     
-    # Run full evaluation with error handling
     try:
         results_df, summary_stats = evaluator.run_full_evaluation()
-        print(f"Evaluation completed successfully. Results saved to {results_dir}")
-        print("Summary statistics:")
-        for metric, value in summary_stats.items():
-            print(f"  {metric}: {value}")
+        print(f"Composition evaluation completed successfully. Results saved to {composition_results_dir}")
     except Exception as e:
-        print(f"Error during evaluation: {str(e)}")
+        print(f"Error during composition evaluation: {str(e)}")
+    
+    # # Run diagram evaluation
+    # print("\n" + "="*50)
+    # print("PHASE DIAGRAM EVALUATION")
+    # print("="*50)
+    
+    # diagram_evaluator = DiagramEvaluator(paths=diagrams_paths, model=model)
+    
+    # try:
+    #     diagram_metrics = diagram_evaluator.run_full_diagram_evaluation(save_dir=diagram_results_dir)
+    #     print(f"Diagram evaluation completed successfully. Results saved to {diagram_results_dir}")
+    # except Exception as e:
+    #     print(f"Error during diagram evaluation: {str(e)}")
+
 
 if __name__ == "__main__":
     main()
