@@ -53,9 +53,13 @@ class DataSpliter:
                     if comp not in self.usabel_elments:
                         res = ''
                         break
+                    if perc > 1:
+                        per /= 100
+                    if perc == 1 or perc == 100:
+                        res += f"{comp}"
                     else:
-                        res += f"{comp}" if perc == 1 else f"{comp}{perc}"
-                    
+                        res += f"{comp}{perc}"
+                    # res += f"{comp}" if perc == 1 else f"{comp}{perc}"
                 gens.append({'System_Name': res, 'Tm (Liquidus)': target})
 
         return pd.DataFrame(gens)
@@ -258,7 +262,7 @@ class DataSpliter:
             f.write("1. All single-element compositions were included in the training set to ensure the model\n")
             f.write("   learns the base properties of each element.\n")
             f.write("2. Multi-element compositions (double, triple, quadruple) were distributed across\n")
-            f.write("   training, validation, and test sets following the 70/15/15 ratio.\n")
+            f.write("   training, validation, and test sets following the 80/10/10 ratio.\n")
             f.write("3. The split was stratified by component count to ensure proper representation\n")
             f.write("   of each component category in each split.\n")
             f.write("4. Data augmentation was performed by generating all possible permutations of\n")
@@ -288,7 +292,7 @@ class DataSpliter:
                         print("First 5 sample compositions:")
                         for i, idx in enumerate(indices[:2]):
                             print(f"  {i+1}. {self.df.iloc[idx]['System_Name']} - {self.df.iloc[idx]['Tm (Liquidus)']}")
-                    print()
+                    # print()
                 
             
             train_df, valid_df, test_df = self.stratified_split_by_components(random_state=random_state)
@@ -339,17 +343,17 @@ class DataSpliter:
             if verbose:
                 print("\nPipeline completed successfully!")
             
-            return train_df, valid_df, test_df
+            return self.train_df, self.valid_df, self.test_df
 
 
 if __name__ == "__main__":
-    example_df = pd.read_csv('./Data/Merged_All.csv')
+    example_df = pd.read_csv('./Data/All_Data_Based_on_02_06_2025/All_Data_Based_on_02_06_2025.csv')
     
     splitter = DataSpliter(example_df)
     
 
     train, valid, test = splitter(
-        output_dir='./Data/Component_Stratified_Split_Based_on_Augmentation',
+        output_dir='./Data/Component_Stratified_Split_Based_on_Augmentation_02_06_2025',
         random_state=123,
         save=True,
         verbose=True

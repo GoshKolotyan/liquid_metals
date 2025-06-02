@@ -1,4 +1,4 @@
-from helper import parse_compostion
+from parser import parse_compostion
 from itertools import permutations
 import pandas as pd
 
