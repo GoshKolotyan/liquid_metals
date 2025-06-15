@@ -235,8 +235,8 @@ class LM_feature_extractor:
             term = fraction * (1 - ratio)**2
             res += term
             
-        return math.sqrt(res)  # Remove the square root
-
+        return math.sqrt(res)  
+    
     def __call__(self, elements_fractions: str) -> list:
         
         entropy_of_mixing = self.calculate_entropy_of_mixing(elements_fractions)

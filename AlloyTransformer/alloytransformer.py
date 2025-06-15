@@ -87,69 +87,6 @@ class PropertyFocusedAttention(Module):
         output = self.out_proj(output)
 
         return output
-class CNNRegressionHead(Module):
-
-    def __init__(self, d_model:int, num_conv_layers:int, dropout:float, use_batch_norm:bool):
-        super(CNNRegressionHead, self).__init__()
-        self.d_model = d_model
-        self.use_batch_norm = use_batch_norm
-        
-        conv_layers = []
-        in_channels = d_model
-
-        for i in range(num_conv_layers):
-            # Reduce channels progressively
-            out_channels = max(32, d_model // (2 ** (i + 1)))
-            
-            conv_layers.append(Conv1d(
-                in_channels=in_channels,
-                out_channels=out_channels,
-                kernel_size=3,
-                stride=1,
-                padding=1,
-                bias=not use_batch_norm
-            ))
-            
-            if use_batch_norm:
-                conv_layers.append(BatchNorm1d(out_channels))
-            
-            conv_layers.append(ReLU(inplace=True))
-            conv_layers.append(Dropout(dropout))
-            
-            in_channels = out_channels
-        
-        self.conv_layers = Sequential(*conv_layers)
-
-        # Global pooling options (deterministic-friendly)
-        self.global_avg_pool = AdaptiveAvgPool1d(1)
-        
-        final_features = in_channels  # Only avg pooling
-        self.final_layers = Sequential(
-            Linear(final_features, final_features // 2),
-            ReLU(),
-            Dropout(dropout),
-            Linear(final_features // 2, 1)
-        )
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # print(50 * "==")
-        # print(18*"==","Using CNNRegressionHead",18*"==")
-        # print(50 * "==")        
-        # print(f"Input shape to CNNRegressionHead: {x.shape}")
-        x = x.transpose(2, 1)
-        
-        x = self.conv_layers(x)
-        # print(50 * "==")
-        # print(f"Shape after convolution layers: {x.shape}")
-        avg_pooled = self.global_avg_pool(x).squeeze(-1)  # (batch_size, channels)
-        # print(50 * "==")
-        # print(f"Shape after global average pooling: {avg_pooled.shape}")
-        pooled = avg_pooled
-        # print(50 * "==")
-        # print(f"Shape before final layers: {pooled.shape}")
-        output = self.final_layers(pooled)
-        # print(50 * "==")
-        # print(f"Output shape after final layers: {output.shape}")
-        return output
 
 class AlloyTransformer(Module):
     def __init__(
@@ -163,11 +100,9 @@ class AlloyTransformer(Module):
         num_positions: int,
         dim_feedforward: int,
         use_property_focus: bool,
-        use_cnn_regression: bool,
     ):
         super(AlloyTransformer, self).__init__()
         self.d_model = d_model
-        self.use_cnn_regression = use_cnn_regression
 
         # input dim is (batch_size, 5, 5)->(batch_size, 5, d_model)
         self.feature_embeddings = Linear(feature_dim, d_model)
@@ -215,26 +150,18 @@ class AlloyTransformer(Module):
         # final layer norm
         self.final_norm = LayerNorm(d_model)
 
-        # regression head
-        if use_cnn_regression:
-            self.regression_head = CNNRegressionHead(
-                d_model=d_model,
-                num_conv_layers=num_regression_head_layers,
-                dropout=dropout,
-                use_batch_norm=True
-            )
-        else:
-            regression_layers = []
-            for _ in range(num_regression_head_layers-1):
-                    regression_layers.extend([
-                    Linear(d_model, d_model),
-                    ReLU(),
-                    Dropout(dropout)
-                ])
 
-            regression_layers.append(Linear(d_model, 1))
+        regression_layers = []
+        for _ in range(num_regression_head_layers-1):
+                regression_layers.extend([
+                Linear(d_model, d_model),
+                ReLU(),
+                Dropout(dropout)
+            ])
 
-            self.regression_head = Sequential(*regression_layers)
+        regression_layers.append(Linear(d_model, 1))
+
+        self.regression_head = Sequential(*regression_layers)
 
         # init wights
         self._init_weights()
@@ -242,10 +169,10 @@ class AlloyTransformer(Module):
     def _init_weights(self):
         for m in self.modules():
             if isinstance(m, Linear):
-                normal_(m.weight)
-                # xavier_uniform_(m.weight)
-                # if m.bias is not None:
-                #     zeros_(m.bias)
+                # normal_(m.weight)
+                xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    zeros_(m.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         
@@ -314,44 +241,41 @@ class AlloyTransformer(Module):
         # print(f"Pooled output shape: {pooled.shape}")
 
         #predediction metling point
-        if self.use_cnn_regression:
-            melting_point = self.regression_head(x).squeeze(-1)
-        else:
-            melting_point = self.regression_head(pooled).squeeze(-1)
+
+        melting_point = self.regression_head(pooled).squeeze(-1)
 
         return melting_point
 
 
-if __name__ == "__main__":
-    from dataloader import LM_Dataset, collate_fn
-    from torch.utils.data import DataLoader
-    from torchinfo import summary
+# if __name__ == "__main__":
+#     from dataloader import LM_Dataset, collate_fn
+#     from torch.utils.data import DataLoader
+#     from torchinfo import summary
 
-    dataloader = DataLoader(
-        dataset=LM_Dataset("./Data/example.csv"), collate_fn=collate_fn, batch_size=1
-    )
-    model = AlloyTransformer(
-        feature_dim=5,
-        d_model=1024,
-        num_head=16,
-        num_transformer_layers=5,
-        num_regression_head_layers=4,
-        dropout=0.1,
-        num_positions=5,
-        dim_feedforward=512,
-        use_property_focus=True,
-        use_cnn_regression=True
-    )
+#     dataloader = DataLoader(
+#         dataset=LM_Dataset("./Data/example.csv"), collate_fn=collate_fn, batch_size=1
+#     )
+#     model = AlloyTransformer(
+#         feature_dim=5,
+#         d_model=1024,
+#         num_head=16,
+#         num_transformer_layers=5,
+#         num_regression_head_layers=4,
+#         dropout=0.1,
+#         num_positions=5,
+#         dim_feedforward=512,
+#         use_property_focus=True,
+#     )
 
-    for batch in dataloader:
-        features, target = batch
-        print(f'features shape: {features.shape}')
-        print(f'target shape: {target.shape}')
+#     for batch in dataloader:
+#         features, target = batch
+#         print(f'features shape: {features.shape}')
+#         print(f'target shape: {target.shape}')
 
-        output = model(features)
-        # print(50 * "==")
-        # print(f"output is: {output.item()}")
-        break
+#         output = model(features)
+#         # print(50 * "==")
+#         # print(f"output is: {output.item()}")
+#         break
 
-    print(23*"==","Model",23*"==")
-    # summary(model, verbose=2)
+#     print(23*"==","Model",23*"==")
+#     # summary(model, verbose=2)

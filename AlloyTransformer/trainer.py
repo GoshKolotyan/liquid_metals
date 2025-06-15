@@ -43,7 +43,6 @@ class AlloyTransformerLightning(pl.LightningModule):
         self.max_plot_samples = getattr(config, 'max_plot_samples', 1500)  # Limit samples for performance
         self.max_line_plot_samples = getattr(config, 'max_line_plot_samples', 100)  # For line plot performance
         
-        # Store validation data for plotting (Lightning v2.0+ approach)
         self.validation_predictions = []
         self.validation_targets = []
 
@@ -53,7 +52,7 @@ class AlloyTransformerLightning(pl.LightningModule):
             train_dataset = LM_Dataset(self.hparams.train_path)
             sample_data = train_dataset[0]
 
-            # Add better error handling or validation
+            #better error handling or validation
             if not isinstance(sample_data, tuple) or len(sample_data) < 1:
                 raise ValueError(
                     "Dataset sample should return a tuple with at least input tensor"
@@ -76,7 +75,6 @@ class AlloyTransformerLightning(pl.LightningModule):
                 num_positions=self.hparams.num_positions,  
                 dim_feedforward=self.hparams.dim_feedforward,
                 use_property_focus=self.hparams.use_property_focus,
-                use_cnn_regression=True
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

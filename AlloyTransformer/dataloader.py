@@ -46,9 +46,7 @@ class LM_Dataset(Dataset):
 
 def collate_fn(batch):
     """Custom collate function to handle variable sequence lengths"""
-    # Check if batch contains targets or just compositions
     if isinstance(batch[0], tuple):
-        # Training/validation data with targets
         tokens = [item[0] for item in batch]
         targets = [item[1] for item in batch]
         
@@ -63,7 +61,6 @@ def collate_fn(batch):
         
         return padded_tokens, targets
     else:
-        # Inference data without targets
         tokens = batch
         
         max_seq_len = max(token.size(0) for token in tokens)

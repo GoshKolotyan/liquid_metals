@@ -8,11 +8,22 @@ from torchinfo import summary
 from datetime import datetime
 
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor, TQDMProgressBar
 
 from configs import ConfigLoader, ModelConfig
 from trainer import AlloyTransformerLightning
 from helper import create_model_loader, save_config, save_final_model, get_next_version
+
+
+class CustomProgressBar(TQDMProgressBar):
+    """Custom progress bar that removes v_num from display"""
+    def get_metrics(self, trainer, pl_module):
+        # Get default metrics
+        items = super().get_metrics(trainer, pl_module)
+        # Remove v_num if it exists
+        items.pop("v_num", None)
+        return items
+
 
 def setup_checkpoints(checkpoint_dir, patience):
     """Set up checkpoint callbacks - only saving best and last"""
@@ -36,10 +47,14 @@ def setup_checkpoints(checkpoint_dir, patience):
         verbose=True
     )
     
+    # Custom progress bar without v_num
+    custom_progress_bar = CustomProgressBar()
+    
     return [
         best_val_checkpoint,
         lr_monitor,
-        early_stopping
+        early_stopping,
+        custom_progress_bar
     ], best_val_checkpoint
 
 
@@ -84,7 +99,7 @@ def main(configs: ModelConfig):
     logger = TensorBoardLogger(
         save_dir=logs_dir,
         name=configs.model_name,
-        version=version,
+        version=version,  # Use your generated version instead of None
         default_hp_metric=False
     )
     
@@ -202,7 +217,7 @@ def main(configs: ModelConfig):
     # Create model loader
     print("Creating model loader...")
     try:
-        create_model_loader(checkpoint_dir, configs, final_model_path)  # Fixed: use 'configs' instead of 'config'
+        create_model_loader(checkpoint_dir, configs, final_model_path)
         print("Model loader created successfully")
     except Exception as e:
         print(f"Error creating model loader: {e}")

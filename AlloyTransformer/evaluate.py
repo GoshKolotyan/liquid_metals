@@ -1215,7 +1215,7 @@ class DiagramEvaluator:
 
 def main():
     # Model checkpoint directory
-    checkpoint_dir = 'checkpoints/AlloyTransformer_L1_v0.0.1'
+    checkpoint_dir = 'checkpoints/AlloyTransformer_Regression_15_06__v0.1.1'
     config_path = os.path.join(checkpoint_dir, 'config.json')
     
     # Load configuration with proper error handling
@@ -1231,7 +1231,7 @@ def main():
     
     # Set model path
     model_path = os.path.join(checkpoint_dir, 'final_model.pt')
-    test_path = 'Data/Component_Stratified_Split_Based_on_Augmentation/test_set_for_low_temp.csv'
+    test_path = 'Data/All_Data_Based_06-06-2025/test_set_for_low_temp.csv'
     diagrams_paths = "Created Data"
     
     # Create results directories
