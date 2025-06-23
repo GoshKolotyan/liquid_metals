@@ -1,5 +1,6 @@
-Model Architecture  
+## Model Architecture
 
+```
 Input Tensor [batch_size, 5, 5]    
      │    
      ▼    
@@ -68,3 +69,6 @@ Input Tensor [batch_size, 5, 5]
                          ▼    
                   Predicted Melting Point    
                       [batch_size] 
+```
+
+This architecture implements a transformer-based model for predicting melting points from chemical composition data. The model processes input tensors representing chemical mixtures through specialized attention mechanisms and outputs melting point predictions.
