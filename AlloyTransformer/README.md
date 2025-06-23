@@ -1,15 +1,15 @@
-Model Architecture
-
-Input Tensor [batch_size, 5, 5]
-     │
-     ▼
-┌────────────────────┐
-│  Linear Embedding  │  Transform raw features to embedding dimension
-│  [5 → d_model]     │
-└────────────────────┘
-     │
-     ▼
-┌────────────────────┐
+Model Architecture  
+     
+Input Tensor [batch_size, 5, 5]    
+     │    
+     ▼    
+┌────────────────────┐   
+│  Linear Embedding  │  Transform raw features to embedding dimension 
+│  [5 → d_model]     │   
+└────────────────────┘   
+     │    
+     ▼    
+┌────────────────────┐   
 │ Learnable Position │  Add role-based position information
 │     Embeddings     │  for elements vs. mixture properties
 └────────────────────┘
