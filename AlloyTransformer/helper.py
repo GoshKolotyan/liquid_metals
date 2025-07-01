@@ -169,13 +169,13 @@ def parse_compostion(composition: str) -> list[tuple[str, float]]:
     if total != 1.0:
         elements_fractions = [(element, frac/total) for element, frac in elements_fractions]
     
-    while len(elements_fractions) < 4:
+    while len(elements_fractions) < 5:
         elements_fractions.append(("", 0.0))
     return elements_fractions
 
 class LM_feature_extractor:
     def __init__(self, vocab_path="./configs/elements_vocab.json"):
-        self.length = 5
+        self.length = 6
         self.vocab = json.load(open(vocab_path))
         
     def calculate_entropy_of_mixing(self, elements_fractions):

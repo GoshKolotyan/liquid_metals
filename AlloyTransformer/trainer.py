@@ -39,9 +39,9 @@ class AlloyTransformerLightning(pl.LightningModule):
         self.test_mape = MeanAbsolutePercentageError()
         
         # Visualization settings
-        self.plot_every_n_epochs = getattr(config, 'plot_every_n_epochs', 1)
+        self.plot_every_n_epochs = getattr(config, 'plot_every_n_epochs', 2)
         self.max_plot_samples = getattr(config, 'max_plot_samples', 1500)  # Limit samples for performance
-        self.max_line_plot_samples = getattr(config, 'max_line_plot_samples', 100)  # For line plot performance
+        self.max_line_plot_samples = getattr(config, 'max_line_plot_samples', 250)  # For line plot performance
         
         self.validation_predictions = []
         self.validation_targets = []

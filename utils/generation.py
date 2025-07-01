@@ -139,15 +139,10 @@ class GenData:
         return self.df
 
 
-# Example usage with a smaller set of elements for demonstration
-# You can replace this with your actual elements loading
 example_elements = [
     "Ga", "In", "Sn", "Sb", "Bi"
 ]  # Small set for testing
 
-# If you want to load from JSON (uncomment and modify path as needed):
-# elements = pd.read_json("../configs/elements_vocab.json")
-# element_list = elements.columns.tolist()
 
 cls = GenData(
     elements=example_elements,  # Use example_elements or element_list

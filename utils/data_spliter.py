@@ -347,13 +347,13 @@ class DataSpliter:
 
 
 if __name__ == "__main__":
-    example_df = pd.read_csv('./Data/All_Data_Based_on_02_06_2025/All_Data_Based_on_02_06_2025.csv')
+    example_df = pd.read_csv('Data/All_Data_Based_06-06-2025/13-06-2025-fixed.csv')
     
     splitter = DataSpliter(example_df)
     
 
     train, valid, test = splitter(
-        output_dir='./Data/Component_Stratified_Split_Based_on_Augmentation_02_06_2025',
+        output_dir='./Data/Component_Stratified_Split_Based_on_Augmentation_28_06_2025',
         random_state=123,
         save=True,
         verbose=True

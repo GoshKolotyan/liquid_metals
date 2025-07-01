@@ -1215,7 +1215,7 @@ class DiagramEvaluator:
 
 def main():
     # Model checkpoint directory
-    checkpoint_dir = 'checkpoints/AlloyTransformer_Regression_15_06__v0.1.1'
+    checkpoint_dir = 'checkpoints/AlloyTransformer_Regression_28_06__v3.3.1'
     config_path = os.path.join(checkpoint_dir, 'config.json')
     
     # Load configuration with proper error handling
@@ -1235,7 +1235,7 @@ def main():
     diagrams_paths = "Created Data"
     
     # Create results directories
-    composition_results_dir = "alloy_transformer_results_6"
+    composition_results_dir = "alloy_transformer_results_7"
     diagram_results_dir = "diagram_evaluation_results"
     Path(composition_results_dir).mkdir(exist_ok=True)
     Path(diagram_results_dir).mkdir(exist_ok=True)

@@ -5,9 +5,8 @@ import pandas as pd
 from torch.utils.data import DataLoader
 import json
 from typing import OrderedDict
-from trainer import AlloyTransformerLightning  # Import the Lightning module
-from dataloader import LM_Dataset, collate_fn # Import your custom Dataset and collate_fn
-
+from trainer import AlloyTransformerLightning 
+from dataloader import LM_Dataset, collate_fn 
 class Predictor:
     def __init__(self, model_path: str, evaluation_path: str, configs: dict, save_dir: str):
         self.model_path = model_path
@@ -53,10 +52,9 @@ class Predictor:
             import torch.torch_version
             torch.serialization.add_safe_globals([torch.torch_version.TorchVersion])
         except (ImportError, AttributeError):
-            pass  # Skip if not available in this PyTorch version
+            pass  
         
         if checkpoint_path.endswith('.ckpt'):
-            # Load from Lightning checkpoint
             try:
                 model = AlloyTransformerLightning.load_from_checkpoint(
                     checkpoint_path, 
@@ -66,7 +64,6 @@ class Predictor:
                 print(f"Successfully loaded Lightning checkpoint from {checkpoint_path}")
             except Exception as e:
                 print(f"Error loading Lightning checkpoint: {str(e)}")
-                # Try without weights_only parameter for older PyTorch versions
                 try:
                     model = AlloyTransformerLightning.load_from_checkpoint(
                         checkpoint_path,
@@ -77,7 +74,6 @@ class Predictor:
                     print(f"Failed to load Lightning checkpoint: {str(e2)}")
                     raise e2
         else:
-            # Load from state dict
             try:
                 checkpoint = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
                 print(f"Successfully loaded checkpoint with weights_only=False")
@@ -278,7 +274,7 @@ class Predictor:
 
 # Example Usage
 if __name__ == '__main__':
-    checkpoint_dir = 'checkpoints/AlloyTransformer_L1_v0.0.1'
+    checkpoint_dir = 'checkpoints/AlloyTransformer_Regression_28_06__v3.3.1'
     config_path = os.path.join(checkpoint_dir, 'config.json')
     model_path = os.path.join(checkpoint_dir, 'final_model.pt')
 
@@ -291,9 +287,9 @@ if __name__ == '__main__':
 
     pred = Predictor(
         model_path=model_path,
-        evaluation_path="Data/Component_Stratified_Split_Based_on_Augmentation/element_combinations_with_ratios.csv",
+        evaluation_path="Data/All_Data_Based_06-06-2025/element_combinations_with_ratios.csv",
         configs=configs,
-        save_dir="predictions"
+        save_dir="predictions_2"
     )
     
     # Run predictions

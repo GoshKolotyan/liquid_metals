@@ -8,15 +8,38 @@ from torchinfo import summary
 from datetime import datetime
 
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor, TQDMProgressBar
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor, TQDMProgressBar, RichProgressBar
+from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBarTheme
 
 from configs import ConfigLoader, ModelConfig
 from trainer import AlloyTransformerLightning
 from helper import create_model_loader, save_config, save_final_model, get_next_version
 
 
-class CustomProgressBar(TQDMProgressBar):
-    """Custom progress bar that removes v_num from display"""
+from pytorch_lightning.callbacks import RichProgressBar, ModelCheckpoint, LearningRateMonitor, EarlyStopping
+from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
+
+
+class CustomRichProgressBar(RichProgressBar):
+    """Custom RichProgressBar that removes v_num from display and has custom theming"""
+    
+    def __init__(self, **kwargs):
+        # Set up the custom theme
+        theme = RichProgressBarTheme(
+            description="bold magenta",
+            progress_bar="#5AC8FA",             # Light blue
+            progress_bar_finished="#32CD32",     # Lime green
+            progress_bar_pulse="#FF69B4",        # Hot pink
+            batch_progress="#FFD700",            # Gold
+            time="grey70",
+            processing_speed="grey70",
+            metrics="white",
+            metrics_text_delimiter="\n"
+        )
+        
+        # Initialize with custom theme
+        super().__init__(theme=theme, **kwargs)
+    
     def get_metrics(self, trainer, pl_module):
         # Get default metrics
         items = super().get_metrics(trainer, pl_module)
@@ -41,14 +64,14 @@ def setup_checkpoints(checkpoint_dir, patience):
     
     # Early stopping callback
     early_stopping = EarlyStopping(
-        monitor='val_loss',
+        monitor='val_loss', 
         patience=patience,
         mode='min',
         verbose=True
     )
     
-    # Custom progress bar without v_num
-    custom_progress_bar = CustomProgressBar()
+    # Custom rich progress bar without v_num and with custom theming
+    custom_progress_bar = CustomRichProgressBar()
     
     return [
         best_val_checkpoint,
@@ -56,7 +79,6 @@ def setup_checkpoints(checkpoint_dir, patience):
         early_stopping,
         custom_progress_bar
     ], best_val_checkpoint
-
 
 def main(configs: ModelConfig):
     """Main training function"""
