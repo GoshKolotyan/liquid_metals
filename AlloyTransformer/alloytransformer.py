@@ -178,106 +178,132 @@ class AlloyTransformer(Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         
+        #we need to shuflle all postion beside last only fist 5 ones
+        # x shape is (batch_size, 6, 5)
+        # print(50 * "==")
+
+        if self.training:
+            shuffled_x = x.clone()
+            print(50 * "==")
+            print(f"Input x before shuffling shape: {x.shape}")
+            print(f"Input x before shuffling: \n{x}")
+            
+            # Method 1: Shuffle same way for all samples in batch (faster)
+            num_element_positions = 5  # First 5 positions to shuffle
+            shuffled_indices = torch.randperm(num_element_positions)  # Generate indices [0,1,2,3,4] in random order
+            
+            # Apply shuffling only to first 5 positions, keep position 5 unchanged
+            shuffled_x[:, :num_element_positions, :] = x[:, shuffled_indices, :]
+            
+            print(f"Shuffled x shape: {shuffled_x.shape}")
+            print(f"Shuffled x: \n{shuffled_x}")
+            
+            x = shuffled_x
+
+            assert x[0, 5, :].equal(x[0, 5, :]), "Position 5 should remain unchanged after shuffling"
+            print(f"Position 5 after shuffling: {x[0, 5, :]}")
+            print(50 * "==")
+
         # x shape is (batch_size, 5, 6)
-        x = self.feature_embeddings(x)
+        # x = self.feature_embeddings(x)
         # print("x shape after feature embedding:", x.shape)
         # print(50 * "==")
         # print(f"x shape after feature embedding: {x.shape}")
         
-        # role embeddings
-        batch_size = x.shape[0]
-        role_embeddings = self.role_embeddings.expand(batch_size, -1, -1)
+        # # role embeddings
+        # batch_size = x.shape[0]
+        # role_embeddings = self.role_embeddings.expand(batch_size, -1, -1)
         # print(50 * "==")
         # print(f"role_embeddings shape: {role_embeddings.shape}")
 
-        # x = x + role_embeddings
-        # print(50 * "==")
-        # print(f"x shape after adding role embeddings: {x.shape}")
+        # # x = x + role_embeddings
+        # # print(50 * "==")
+        # # print(f"x shape after adding role embeddings: {x.shape}")
 
-        for i, (layer_norm1, attn, dropout1, layer_norm2, ffn, dropout2) in enumerate(self.layers):
-            # pre norm
-            # print(50 * "==")
-            norm_x = layer_norm1(x)
-            # print(f"Layer {i+1} input shape: {norm_x.shape}")
-            # attention
-            if isinstance(attn, PropertyFocusedAttention):
-                #   print(50 * "==")
-                # print(18*"==",f"Using PropertyFocusedAttention", 16*"==")
-                # print(50 * "==")
+        # for i, (layer_norm1, attn, dropout1, layer_norm2, ffn, dropout2) in enumerate(self.layers):
+        #     # pre norm
+        #     # print(50 * "==")
+        #     norm_x = layer_norm1(x)
+        #     # print(f"Layer {i+1} input shape: {norm_x.shape}")
+        #     # attention
+        #     if isinstance(attn, PropertyFocusedAttention):
+        #         #   print(50 * "==")
+        #         # print(18*"==",f"Using PropertyFocusedAttention", 16*"==")
+        #         # print(50 * "==")
 
-                x = attn(norm_x)
-                # print(f"Layer {i+1} attention output shape: {x.shape}")
-            else:
-                # print(50 * "==")
-                # print(18*"==",f"Using MultiheadAttention", 19*"==")
-                # print(50 * "==")                
-                x, _ = attn(norm_x, norm_x, norm_x)
-                # print(f"Layer {i+1} attention output shape: {x.shape}")
+        #         x = attn(norm_x)
+        #         # print(f"Layer {i+1} attention output shape: {x.shape}")
+        #     else:
+        #         # print(50 * "==")
+        #         # print(18*"==",f"Using MultiheadAttention", 19*"==")
+        #         # print(50 * "==")                
+        #         x, _ = attn(norm_x, norm_x, norm_x)
+        #         # print(f"Layer {i+1} attention output shape: {x.shape}")
             
-            #residual connection
-            x = x + dropout1(norm_x)
-            # print(50 * "==")
-            # print(f"Layer {i+1} after residual connection shape: {x.shape}")
+        #     #residual connection
+        #     x = x + dropout1(norm_x)
+        #     # print(50 * "==")
+        #     # print(f"Layer {i+1} after residual connection shape: {x.shape}")
             
-            #ffn with pre-norm
-            norm_x = layer_norm2(x)
-            # print(50 * "==")
-            # print(f"Layer {i+1} ffn pre-norm shape: {norm_x.shape}")
-            ffn_output = ffn(norm_x)
-            # print(50 * "==")
-            # print(f"Layer {i+1} ffn output shape: {ffn_output.shape}")
+        #     #ffn with pre-norm
+        #     norm_x = layer_norm2(x)
+        #     # print(50 * "==")
+        #     # print(f"Layer {i+1} ffn pre-norm shape: {norm_x.shape}")
+        #     ffn_output = ffn(norm_x)
+        #     # print(50 * "==")
+        #     # print(f"Layer {i+1} ffn output shape: {ffn_output.shape}")
             
-            #residual connection
-            x = x + dropout2(ffn_output)
-            # print(50 * "==")
-            # print(f"Layer {i+1} output shape: {x.shape}")
+        #     #residual connection
+        #     x = x + dropout2(ffn_output)
+        #     # print(50 * "==")
+        #     # print(f"Layer {i+1} output shape: {x.shape}")
 
-        # final layer norm
-        x = self.final_norm(x)
+        # # final layer norm
+        # x = self.final_norm(x)
+        # # print(50 * "==")
+        # # print(f"Final output shape: {x.shape}")
+
+        # # global average pooling over positions 
+        # pooled = torch.mean(x, dim=1)
+        # # print(50 * "==")
+        # # print(f"Pooled output shape: {pooled.shape}")
+
+        # #predediction metling point
+
+        # melting_point = self.regression_head(pooled).squeeze(-1)
+
+        # return melting_point
+
+
+if __name__ == "__main__":
+    from dataloader import LM_Dataset, collate_fn
+    from torch.utils.data import DataLoader
+    from torchinfo import summary
+
+    dataloader = DataLoader(
+        dataset=LM_Dataset("./Data/example.csv"), collate_fn=collate_fn, batch_size=1
+    )
+    model = AlloyTransformer(
+        feature_dim=5,
+        d_model=1024,
+        num_head=16,
+        num_transformer_layers=5,
+        num_regression_head_layers=4,
+        dropout=0.1,
+        num_positions=6,
+        dim_feedforward=512,
+        use_property_focus=True,
+    )
+
+    for batch in dataloader:
+        features, target = batch
+        print(f'features shape: {features.shape}')
+        print(f'target shape: {target.shape}')
+
+        output = model(features)
         # print(50 * "==")
-        # print(f"Final output shape: {x.shape}")
+        # print(f"output is: {output.item()}")
+        break
 
-        # global average pooling over positions 
-        pooled = torch.mean(x, dim=1)
-        # print(50 * "==")
-        # print(f"Pooled output shape: {pooled.shape}")
-
-        #predediction metling point
-
-        melting_point = self.regression_head(pooled).squeeze(-1)
-
-        return melting_point
-
-
-# if __name__ == "__main__":
-#     from dataloader import LM_Dataset, collate_fn
-#     from torch.utils.data import DataLoader
-#     from torchinfo import summary
-
-#     dataloader = DataLoader(
-#         dataset=LM_Dataset("./Data/example.csv"), collate_fn=collate_fn, batch_size=1
-#     )
-#     model = AlloyTransformer(
-#         feature_dim=5,
-#         d_model=1024,
-#         num_head=16,
-#         num_transformer_layers=5,
-#         num_regression_head_layers=4,
-#         dropout=0.1,
-#         num_positions=6,
-#         dim_feedforward=512,
-#         use_property_focus=True,
-#     )
-
-#     for batch in dataloader:
-#         features, target = batch
-#         print(f'features shape: {features.shape}')
-#         print(f'target shape: {target.shape}')
-
-#         output = model(features)
-#         print(50 * "==")
-#         print(f"output is: {output.item()}")
-#         break
-
-#     print(23*"==","Model",23*"==")
-#     # summary(model, verbose=2)
+    # print(23*"==","Model",23*"==")
+    # summary(model, verbose=2)
