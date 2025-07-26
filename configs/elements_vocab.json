@@ -1,0 +1,135 @@
+{
+    "Li": {
+        "atomic_number": 3,
+        "electronegativity": 0.98,
+        "atomic_radius": 167.0,
+        "melting_point": 180.54,
+        "ionization_energy": 5.391714996
+    },
+    "Na": {
+        "atomic_number": 11,
+        "electronegativity": 0.93,
+        "atomic_radius": 190.0,
+        "melting_point": 97.72,
+        "ionization_energy": 5.13907696
+    },
+    "Mg": {
+        "atomic_number": 12,
+        "electronegativity": 1.31,
+        "atomic_radius": 145.0,
+        "melting_point": 650.0,
+        "ionization_energy": 7.646236
+    },
+    "Al": {
+        "atomic_number": 13,
+        "electronegativity": 1.61,
+        "atomic_radius": 118.0,
+        "melting_point": 660.32,
+        "ionization_energy": 5.985769
+    },
+    "P": {
+        "atomic_number": 15,
+        "electronegativity": 2.19,
+        "atomic_radius": 98.0,
+        "melting_point": 44.15,
+        "ionization_energy": 10.486686
+    },
+    "S": {
+        "atomic_number": 16,
+        "electronegativity": 2.58,
+        "atomic_radius": 88.0,
+        "melting_point": 115.21,
+        "ionization_energy": 10.36001
+    },
+    "K": {
+        "atomic_number": 19,
+        "electronegativity": 0.82,
+        "atomic_radius": 243.0,
+        "melting_point": 63.2,
+        "ionization_energy": 4.34066373
+    },
+    "Ca": {
+        "atomic_number": 20,
+        "electronegativity": 1.0,
+        "atomic_radius": 194.0,
+        "melting_point": 841.85,
+        "ionization_energy": 6.11315547
+    },
+    "Zn": {
+        "atomic_number": 30,
+        "electronegativity": 1.65,
+        "atomic_radius": 142.0,
+        "melting_point": 419.53,
+        "ionization_energy": 9.394197
+    },
+    "Ga": {
+        "atomic_number": 31,
+        "electronegativity": 1.81,
+        "atomic_radius": 136.0,
+        "melting_point": 29.76,
+        "ionization_energy": 5.999302
+    },
+    "Ge": {
+        "atomic_number": 32,
+        "electronegativity": 2.01,
+        "atomic_radius": 125.0,
+        "melting_point": 938.26,
+        "ionization_energy": 7.899435
+    },
+    "Se": {
+        "atomic_number": 34,
+        "electronegativity": 2.55,
+        "atomic_radius": 103.0,
+        "melting_point": 220.81,
+        "ionization_energy": 9.752368
+    },
+    "Ag": {
+        "atomic_number": 47,
+        "electronegativity": 1.93,
+        "atomic_radius": 165.0,
+        "melting_point": 961.79,
+        "ionization_energy": 7.576234
+    },
+    "In": {
+        "atomic_number": 49,
+        "electronegativity": 1.78,
+        "atomic_radius": 156.0,
+        "melting_point": 156.6,
+        "ionization_energy": 5.7863558
+    },
+    "Sn": {
+        "atomic_number": 50,
+        "electronegativity": 1.96,
+        "atomic_radius": 145.0,
+        "melting_point": 231.93,
+        "ionization_energy": 7.343918
+    },
+    "Sb": {
+        "atomic_number": 51,
+        "electronegativity": 2.05,
+        "atomic_radius": 145.0,
+        "melting_point": 630.63,
+        "ionization_energy": 8.608389
+    },
+    "Cs": {
+        "atomic_number": 55,
+        "electronegativity": 0.79,
+        "atomic_radius": 298.0,
+        "melting_point": 28.4,
+        "ionization_energy": 3.89390572743
+    },
+    "Ba": {
+        "atomic_number": 56,
+        "electronegativity": 0.89,
+        "atomic_radius": 253.0,
+        "melting_point": 726.85,
+        "ionization_energy": 5.2116646
+    },
+    "Bi": {
+        "atomic_number": 83,
+        "electronegativity": 2.02,
+        "atomic_radius": 163.0,
+        "melting_point": 271.36,
+        "ionization_energy": 7.285516
+    }
+}
