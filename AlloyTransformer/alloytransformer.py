@@ -204,21 +204,26 @@ class AlloyTransformer(Module):
             print(f"Position 5 after shuffling: {x[0, 5, :]}")
             print(50 * "==")
 
-        # x shape is (batch_size, 5, 6)
-        # x = self.feature_embeddings(x)
-        # print("x shape after feature embedding:", x.shape)
-        # print(50 * "==")
-        # print(f"x shape after feature embedding: {x.shape}")
-        
-        # # role embeddings
-        # batch_size = x.shape[0]
-        # role_embeddings = self.role_embeddings.expand(batch_size, -1, -1)
-        # print(50 * "==")
-        # print(f"role_embeddings shape: {role_embeddings.shape}")
+            x = self.feature_embeddings(x)
+            print(f"x shape after feature embedding: {x.shape}")
+        else:
+            print(50 * "==")
+            print(f"Input x shape: {x.shape}")
+            print(f"Input x: \n{x}")
+            # No shuffling in evaluation mode, just apply feature embeddings
+            x = self.feature_embeddings(x)
+            print(f"x shape after feature embedding: {x.shape}")
+            print(50 * "==")
 
-        # # x = x + role_embeddings
-        # # print(50 * "==")
-        # # print(f"x shape after adding role embeddings: {x.shape}")
+        # role embeddings
+        batch_size = x.shape[0]
+        role_embeddings = self.role_embeddings.expand(batch_size, -1, -1)
+        print(50 * "==")
+        print(f"role_embeddings shape: {role_embeddings.shape}")
+
+        x = x + role_embeddings
+        print(50 * "==")
+        print(f"x shape after adding role embeddings: {x.shape}")
 
         # for i, (layer_norm1, attn, dropout1, layer_norm2, ffn, dropout2) in enumerate(self.layers):
         #     # pre norm
