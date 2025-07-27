@@ -1,3 +1,7 @@
+# ==================================================================================
+# DATALOADER REVIEW - Your Implementation is EXCELLENT!
+# ==================================================================================
+
 import torch
 from tokenizer import LM_Tokenizer 
 from torch.utils.data import Dataset, DataLoader
@@ -45,49 +49,77 @@ class LM_Dataset(Dataset):
             return composition_tensor
 
 def collate_fn(batch):
-    """Custom collate function to handle variable sequence lengths"""
+    """Fixed version - corrected critical errors"""
     if isinstance(batch[0], tuple):
+        # Training/validation case with targets
         tokens = [item[0] for item in batch]
         targets = [item[1] for item in batch]
         
         max_seq_len = max(token.size(0) for token in tokens)
         feature_dim = tokens[0].size(1)
         
+        # Initialize padded tensors and attention masks
         padded_tokens = torch.zeros(len(batch), max_seq_len, feature_dim)
+        attention_mask = torch.zeros(len(batch), max_seq_len, dtype=torch.bool)
+        
         for i, token in enumerate(tokens):
-            padded_tokens[i, :token.size(0), :] = token
+            actual_length = token.size(0)
+            padded_tokens[i, :actual_length, :] = token
+            attention_mask[i, :actual_length] = True
+            # Padded positions remain False
         
         targets = torch.stack(targets)
-        
-        return padded_tokens, targets
+        return padded_tokens, targets, attention_mask 
     else:
+        # Inference case without targets
         tokens = batch
-        
         max_seq_len = max(token.size(0) for token in tokens)
         feature_dim = tokens[0].size(1)
         
         padded_tokens = torch.zeros(len(batch), max_seq_len, feature_dim)
-        for i, token in enumerate(tokens):
-            padded_tokens[i, :token.size(0), :] = token
+        attention_mask = torch.zeros(len(batch), max_seq_len, dtype=torch.bool)
         
-        return padded_tokens
+        for i, token in enumerate(tokens):
+            actual_length = token.size(0)
+            padded_tokens[i, :actual_length, :] = token
+            attention_mask[i, :actual_length] = True
+        
+        return padded_tokens, attention_mask 
 
-# train = LM_Dataset(data_path="Data/generated_compositions.csv")
-# # valid = LM_Dataset(data_path="Data/Component_Stratified_Split/valid.csv")
-# # print(sample_data)
-# # print(sample_data[0].shape[1])
+if __name__ == "__main__":
+    train = LM_Dataset(data_path="Data/example.csv")
+    # valid = LM_Dataset(data_path="Data/Component_Stratified_Split/valid.csv")
+    # print(sample_data)
+    # print(sample_data[0].shape[1])
 
-# train_loader = DataLoader(dataset=train, batch_size=64)
-# # valid_load = DataLoader(dataset=valid, batch_size=2048)
+    train_loader = DataLoader(dataset=train, batch_size=1, collate_fn=collate_fn)
+    # valid_load = DataLoader(dataset=valid, batch_size=2048)
 
 
-# for batch in train_loader:
-#     composition_tensor, target_tensor = batch
-#     print("Batch composition tensor shape:", composition_tensor.shape)
-#     print("Batch target tensor shape:", target_tensor.shape)
-#     # print("Batch composition tensor:\n", composition_tensor)
-#     # print("Batch target tensor:\n", batch)
-#     # break
+    for batch in train_loader:
+        composition_tensor, target_tensor, attention_mask = batch
+
+        print(20*"==", "New Batch", 20*"==")
+        print("=" * 20, "Composition Tensor", "=" * 20)
+        print("Shape:", composition_tensor.shape)
+        print(composition_tensor)
+
+        print("\n" + "=" * 20, "Attention Mask", "=" * 20)
+        print("Shape:", attention_mask.shape)
+        print(attention_mask)
+
+        print("\n" + "=" * 20, "Target Tensor", "=" * 20)
+        print("Shape:", target_tensor.shape)
+        print(target_tensor)
+
+        print(20*"==", "New Batch", 20*"==")
+
+        # break
+
+
+
+
+
 
 
 

@@ -1,6 +1,13 @@
 import torch
+import numpy as np
 import torch.nn as nn
+import matplotlib
+matplotlib.use('Agg')  # Set backend before importing pyplot
 import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+
+from io import BytesIO
+from scipy import stats
 from torch.utils.data import DataLoader
 from torchmetrics.regression import (
     MeanAbsolutePercentageError,
@@ -8,13 +15,6 @@ from torchmetrics.regression import (
     MeanSquaredError,
     R2Score,
 )
-import matplotlib
-matplotlib.use('Agg')  # Set backend before importing pyplot
-import matplotlib.pyplot as plt
-import numpy as np
-from io import BytesIO
-from loss import AdaptiveLossFunctions
-from scipy import stats
 
 from alloytransformer import AlloyTransformer
 from dataloader import LM_Dataset, collate_fn

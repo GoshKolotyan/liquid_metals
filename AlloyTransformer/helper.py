@@ -169,8 +169,8 @@ def parse_compostion(composition: str) -> list[tuple[str, float]]:
     if total != 1.0:
         elements_fractions = [(element, frac/total) for element, frac in elements_fractions]
     
-    while len(elements_fractions) < 5:
-        elements_fractions.append(("", 0.0))
+    # while len(elements_fractions) < 5:
+    #     elements_fractions.append(("", 0.0)) #breakes all attention logic
     return elements_fractions
 
 class LM_feature_extractor:
