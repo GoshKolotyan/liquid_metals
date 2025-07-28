@@ -75,18 +75,27 @@ class AlloyTransformerLightning(pl.LightningModule):
                 num_positions=self.hparams.num_positions,  
                 dim_feedforward=self.hparams.dim_feedforward,
                 use_property_focus=self.hparams.use_property_focus,
+                debug_mode=getattr(self.hparams, 'debug_mode', False)  # 🔧 ADDED: debug_mode support
             )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.model(x)
+    def forward(self, x: torch.Tensor, attention_mask: torch.Tensor = None) -> torch.Tensor:
+        """
+        🚨 CRITICAL FIX: Forward method now accepts and passes attention_mask
+        """
+        return self.model(x, attention_mask=attention_mask)
 
-    def training_step(self, batch: torch.Tensor)->torch.Tensor:
-        inputs, targets = batch
+    def training_step(self, batch: torch.Tensor) -> torch.Tensor:
+        """
+        🚨 CRITICAL FIX: Corrected unpacking order and attention mask usage
+        """
+        # Correct unpacking order: inputs, targets, attention_mask
+        inputs, targets, attention_mask = batch  # 🔧 FIXED: was inputs, masks, targets
 
-        targets = targets.squeeze(-1)
+        targets = targets.view(-1)
 
-        predictions = self(inputs)
-        predictions = predictions.squeeze()
+        # Pass attention mask to model
+        predictions = self(inputs, attention_mask=attention_mask)  # 🔧 FIXED: added attention_mask
+        predictions = predictions.view(-1)
 
         loss = self.criterion(predictions, targets)
 
@@ -94,14 +103,21 @@ class AlloyTransformerLightning(pl.LightningModule):
 
         return loss
 
-    def validation_step(self, batch: torch.Tensor, batch_idx: int)-> torch.Tensor:
-        inputs, targets = batch
-        targets = targets.squeeze(-1)
+    def validation_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
+        """
+        🚨 CRITICAL FIX: Corrected unpacking order and attention mask usage
+        """
+        # Correct unpacking order: inputs, targets, attention_mask
+        inputs, targets, attention_mask = batch  # 🔧 FIXED: was inputs, masks, targets
+        targets = targets.view(-1)
 
-        predictions = self(inputs)
-        predictions = predictions.squeeze()
+        # Pass attention mask to model
+        predictions = self(inputs, attention_mask=attention_mask)  # 🔧 FIXED: added attention_mask
+        predictions = predictions.view(-1)
 
         loss = self.criterion(predictions, targets)
+        # print(f"Validation predictions: {predictions.item()}")
+        # print(f"Validation Targets: {targets.item()}")
 
         self.val_mse(predictions, targets)
         self.val_r2(predictions, targets)
@@ -309,11 +325,21 @@ class AlloyTransformerLightning(pl.LightningModule):
         except Exception as e:
             print(f"Warning: Could not log plot to TensorBoard: {e}")
 
-    def test_step(self, batch: torch.Tensor)->torch.Tensor:
-        inputs, targets = batch
+    def test_step(self, batch: torch.Tensor) -> torch.Tensor:
+        """
+        🚨 CRITICAL FIX: Added attention mask support to test step
+        """
+        # Handle both 2-item and 3-item batch formats
+        if len(batch) == 3:
+            inputs, targets, attention_mask = batch  # 🔧 FIXED: Handle 3-item batch
+        else:
+            inputs, targets = batch
+            attention_mask = None  # Fallback for old format
+            
         targets = targets.squeeze(-1)
 
-        predictions = self(inputs)
+        # Pass attention mask to model
+        predictions = self(inputs, attention_mask=attention_mask)  # 🔧 FIXED: added attention_mask
         predictions = predictions.squeeze()
 
         loss = self.criterion(predictions, targets)
@@ -342,7 +368,14 @@ class AlloyTransformerLightning(pl.LightningModule):
         print(f"MAPE: {metrics['test_mape']:.4f}%")
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        """
+        🔧 ENHANCED: Added support for weight_decay if specified in config
+        """
+        optimizer = torch.optim.AdamW(
+            self.parameters(), 
+            lr=self.hparams.learning_rate,
+            weight_decay=0.1  # 🔧 ADDED: weight_decay support
+        )
 
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, mode="min", factor=0.5, patience=5

@@ -53,96 +53,84 @@ def get_primary_element(composition_dict):
     return max(composition_dict.items(), key=lambda x: x[1])[0]
 
 
-def load_lightning_model(checkpoint_path, config=None):
+def load_lightning_model(model_path, config=None):
     """
-    Load a PyTorch Lightning model from checkpoint with improved handling of different architectures
+    🚨 FIXED: Robust model loading with better error handling for PyTorch 2.6+
     """
-    # Add safe globals to handle PyTorch 2.6 security changes
-    import torch.torch_version
-    torch.serialization.add_safe_globals([torch.torch_version.TorchVersion])
+    print("Loading model...")
     
-    if checkpoint_path.endswith('.ckpt'):
-        # Load from Lightning checkpoint
+    try:
+        # 🚨 FIXED: Handle PyTorch 2.6+ weights_only default change
         try:
-            model = AlloyTransformerLightning.load_from_checkpoint(checkpoint_path, weights_only=False)
-            print(f"Successfully loaded Lightning checkpoint from {checkpoint_path}")
+            # Try with weights_only=False first (since we trust our own checkpoints)
+            if torch.cuda.is_available():
+                checkpoint = torch.load(model_path, map_location='cuda', weights_only=False)
+            else:
+                checkpoint = torch.load(model_path, map_location='cpu', weights_only=False)
+            print("Successfully loaded checkpoint with weights_only=False")
         except Exception as e:
-            print(f"Error loading Lightning checkpoint: {str(e)}")
-            # Try with safe globals
-            model = AlloyTransformerLightning.load_from_checkpoint(checkpoint_path)
-    else:
-        # Load from state dict with explicit weights_only=False
-        try:
-            checkpoint = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
-            print(f"Successfully loaded checkpoint with weights_only=False")
-        except Exception as e:
-            print(f"Error loading with weights_only=False: {str(e)}")
-            # Fallback to default with safe globals already added
-            checkpoint = torch.load(checkpoint_path, map_location='cpu')
-            print(f"Successfully loaded checkpoint after adding safe globals")
+            print(f"Loading with weights_only=False failed: {e}")
+            # Alternative: Use safe globals approach
+            from configs import ModelConfig
+            with torch.serialization.safe_globals([ModelConfig]):
+                if torch.cuda.is_available():
+                    checkpoint = torch.load(model_path, map_location='cuda', weights_only=True)
+                else:
+                    checkpoint = torch.load(model_path, map_location='cpu', weights_only=True)
+                print("Successfully loaded checkpoint with safe globals")
         
-        print(f"Creating model with config: hidden_dim={config['d_model']}, " 
-              f"num_layers={config['num_transformer_layers']}, num_heads={config['num_head']}")
+        # Extract config from checkpoint if not provided
+        if config is None:
+            if 'config' in checkpoint:
+                config = checkpoint['config']
+                print("Using config from checkpoint")
+            else:
+                raise ValueError("No config provided and none found in checkpoint")
         
+        # Create model
         model = AlloyTransformerLightning(config)
+        print(f"Created model with config: d_model={config.get('d_model', 'unknown')}, "
+              f"num_layers={config.get('num_transformer_layers', 'unknown')}, "
+              f"num_heads={config.get('num_head', 'unknown')}")
         
-        # Call setup to initialize the inner model
+        # Setup the model to initialize the transformer
         model.setup('test')
         
-        # Extract model state dict
-        model_state_dict = None
-        if isinstance(checkpoint, dict):
-            if 'model_state_dict' in checkpoint:
-                model_state_dict = checkpoint['model_state_dict']
-            elif 'state_dict' in checkpoint:
-                model_state_dict = checkpoint['state_dict']
-            else:
-                # Try direct loading as a state dict
-                model_state_dict = checkpoint
-        else:
-            model_state_dict = checkpoint
-        
-        # Try to load the state dict with different strategies
+        # Try to load state dict with multiple strategies
         try:
-            # First attempt: direct loading
-            model.load_state_dict(model_state_dict)
-            print("Successfully loaded model state dict directly.")
-        except RuntimeError as e:
+            # Strategy 1: Direct loading
+            model.load_state_dict(checkpoint['model_state_dict'])
+            print("✅ Model loaded successfully with strict=True")
+        except Exception as e:
             print(f"Direct loading failed: {e}")
-            
-            # Second attempt: try loading into the inner model
-            if hasattr(model, 'model') and model.model is not None:
+            try:
+                # Strategy 2: Load inner model only
+                if hasattr(model, 'model') and model.model is not None:
+                    model.model.load_state_dict(checkpoint['model_state_dict'])
+                    print("✅ Inner model loaded successfully")
+                else:
+                    raise Exception("Inner model not available")
+            except Exception as e2:
+                print(f"Inner model loading failed: {e2}")
+                # Strategy 3: Load with strict=False (last resort)
                 try:
-                    # Check if state dict has model prefix
-                    if any(key.startswith('model.') for key in model_state_dict.keys()):
-                        model_inner_state_dict = {k.replace('model.', ''): v for k, v in model_state_dict.items() 
-                                                 if k.startswith('model.')}
-                        model.model.load_state_dict(model_inner_state_dict)
-                        print("Successfully loaded inner model state dict.")
-                        
-                        # Load remaining parameters
-                        non_model_state = {k: v for k, v in model_state_dict.items() if not k.startswith('model.')}
-                        if non_model_state:
-                            model.load_state_dict(non_model_state, strict=False)
-                            print("Loaded non-model parameters.")
-                    else:
-                        # Try loading directly into inner model
-                        model.model.load_state_dict(model_state_dict, strict=False)
-                        print("Loaded state dict into inner model with strict=False.")
-                except RuntimeError as e2:
-                    print(f"Inner model loading failed: {e2}")
-                    print("Attempting to load with strict=False as last resort...")
-                    model.load_state_dict(model_state_dict, strict=False)
-                    print("Loaded state dict with strict=False. Some parameters may be missing.")
-            else:
-                # Last resort: try loading with strict=False
-                print("No inner model found. Attempting to load with strict=False...")
-                model.load_state_dict(model_state_dict, strict=False)
-                print("Loaded state dict with strict=False. Some parameters may be missing.")
-    
-    # Set model to evaluation mode
-    model.eval()
-    return model
+                    missing_keys, unexpected_keys = model.load_state_dict(
+                        checkpoint['model_state_dict'], strict=False
+                    )
+                    print("⚠️  Loaded state dict with strict=False")
+                    if missing_keys:
+                        print(f"Missing keys: {missing_keys[:5]}...")  # Show first 5
+                    if unexpected_keys:
+                        print(f"Unexpected keys: {unexpected_keys[:5]}...")  # Show first 5
+                except Exception as e3:
+                    print(f"❌ All loading strategies failed: {e3}")
+                    raise e3
+        
+        return model
+        
+    except Exception as e:
+        print(f"❌ Failed to load model: {e}")
+        raise e
 
 
 class CompositionEvaluator:
@@ -159,8 +147,7 @@ class CompositionEvaluator:
         # Load model
         self.model = load_lightning_model(model_path, config)
         
-        # The model should already be setup from the load function
-        # But call it again if needed
+        # 🚨 FIXED: Ensure model is properly setup
         if hasattr(self.model, 'model') and self.model.model is None:
             self.model.setup('test')
         
@@ -168,22 +155,31 @@ class CompositionEvaluator:
         self.model.to(self.device)
         self.model.eval()
         
+        print(f"Model loaded and moved to: {self.device}")
+        
         # Load test data
         self.test_dataset = LM_Dataset(test_path)
         self.test_loader = DataLoader(
             self.test_dataset,
-            batch_size=32,
+            batch_size=32,  # Keep same as training
             shuffle=False,
-            collate_fn=collate_fn
+            collate_fn=collate_fn,
+            num_workers=0  # Avoid multiprocessing issues during evaluation
         )
+        
+        print(f"Test dataset loaded: {len(self.test_dataset)} samples")
                                 
         # Load compositions
         self.compositions = []
         with open(test_path, 'r') as f:
             lines = f.readlines()
             for line in lines[1:]:  # Skip header
-                composition, _ = line.strip().split(',')
-                self.compositions.append(composition)
+                parts = line.strip().split(',')
+                if len(parts) >= 2:
+                    composition = parts[0]
+                    self.compositions.append(composition)
+        
+        print(f"Loaded {len(self.compositions)} compositions for evaluation")
         
         # Initialize results storage
         self.predictions = None
@@ -220,30 +216,62 @@ class CompositionEvaluator:
         if total != 1.0:
             elements_fractions = [(element, frac/total) for element, frac in elements_fractions]
         
-        # Pad with empty elements if needed (for fixed-length representation)
-        while len(elements_fractions) < 4:
-            elements_fractions.append(("", 0.0))
         return elements_fractions
     
     def predict(self):
-        """Run model predictions on test set"""
+        """🚨 FIXED: Run model predictions on test set with proper batch unpacking"""
         all_predictions = []
         all_targets = []
         
+        print("Starting predictions...")
+        
         with torch.no_grad():
-            for inputs, targets in self.test_loader:
-                inputs = inputs.to(self.device)
-                targets = targets.to(self.device).squeeze(-1)
-                print(f"Starting prediction {inputs.shape}")
-                predictions = self.model(inputs)
+            for batch_idx, batch in enumerate(self.test_loader):
+                # 🚨 CRITICAL FIX: Correct batch unpacking order
+                # collate_fn returns: (padded_tokens, targets, attention_mask)
+                inputs, targets, attention_mask = batch
                 
-                all_predictions.extend(predictions.squeeze().cpu().numpy())
+                # Move to device
+                inputs = inputs.to(self.device)
+                attention_mask = attention_mask.to(self.device)
+                targets = targets.to(self.device)
+                
+                # 🚨 FIXED: Ensure attention_mask is boolean
+                if attention_mask.dtype != torch.bool:
+                    attention_mask = attention_mask.bool()
+                
+                # Handle target shape
+                if targets.dim() > 1:
+                    targets = targets.squeeze(-1)
+                
+                if batch_idx == 0:
+                    print(f"Batch shapes - Input: {inputs.shape}, Mask: {attention_mask.shape}, Targets: {targets.shape}")
+                    print(f"Attention mask dtype: {attention_mask.dtype}")
+                    print(f"Sample attention mask: {attention_mask[0]}")
+                
+                # 🚨 FIXED: Pass attention_mask to model
+                predictions = self.model(inputs, attention_mask)
+                
+                # Handle prediction shape
+                if predictions.dim() > 1:
+                    predictions = predictions.squeeze(-1)
+                
+                # Store results
+                all_predictions.extend(predictions.cpu().numpy())
                 all_targets.extend(targets.cpu().numpy())
+                
+                if batch_idx % 10 == 0:  # Progress update every 10 batches
+                    print(f"Processed batch {batch_idx + 1}/{len(self.test_loader)}")
         
         self.predictions = np.array(all_predictions)
         self.targets = np.array(all_targets)
         
+        print(f"Predictions completed: {len(self.predictions)} samples")
+        print(f"Prediction range: [{self.predictions.min():.2f}, {self.predictions.max():.2f}]")
+        print(f"Target range: [{self.targets.min():.2f}, {self.targets.max():.2f}]")
+        
         return self.predictions, self.targets
+    
     
     def calculate_metrics(self):
         """Calculate evaluation metrics"""
@@ -1215,7 +1243,7 @@ class DiagramEvaluator:
 
 def main():
     # Model checkpoint directory
-    checkpoint_dir = 'checkpoints/AlloyTransformer_Regression_22_07__v3.3.1'
+    checkpoint_dir = 'checkpoints/AlloyTransformer_Regression_27_07__v1.1.1'
     config_path = os.path.join(checkpoint_dir, 'config.json')
     
     # Load configuration with proper error handling
@@ -1235,7 +1263,7 @@ def main():
     diagrams_paths = "Created Data"
     
     # Create results directories
-    composition_results_dir = "alloy_transformer_results_8"
+    composition_results_dir = "alloy_transformer_results_10"
     diagram_results_dir = "diagram_evaluation_results"
     Path(composition_results_dir).mkdir(exist_ok=True)
     Path(diagram_results_dir).mkdir(exist_ok=True)

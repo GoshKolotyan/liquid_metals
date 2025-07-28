@@ -23,12 +23,16 @@ class LM_Dataset(Dataset):
                 if self.has_targets:
                     # Training/validation data with targets
                     parts = line.split(',')
-                    if len(parts) >= 2:
-                        composition = parts[0]
-                        target = float(parts[1])
-                        self.data.append((composition, target))
-                    else:
-                        print(f"Warning: Skipping line with insufficient data: {line}")
+                    try:
+                        if len(parts) >= 2:
+                            composition = parts[0]
+                            target = float(parts[1])
+                            self.data.append((composition, target))
+                        else:
+                            print(f"Warning: Skipping line with insufficient data: {line}")
+                    except ValueError as e:
+                        print(f"Error parsing line '{line}': {e}")
+                        raise ValueError(f"Invalid data format in line: {line}")
                 else:
                     # Inference data without targets
                     composition = line

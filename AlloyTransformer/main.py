@@ -145,6 +145,7 @@ def main(configs: ModelConfig):
         # Additional useful settings
         enable_progress_bar=True,
         enable_model_summary=True,
+        # num_sanity_val_steps=0
     )
     
     # Log hyperparameters

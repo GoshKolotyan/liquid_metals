@@ -31,7 +31,7 @@ class PropertyFocusedAttention(Module):
         # 🔧 FIXED: Property bias initialization (was overwriting itself)
         if property_bias:
             # Enhanced property bias for better attention patterns
-            self.register_buffer('melting_point_threshold', torch.tensor(1000.0))
+            self.register_buffer('melting_point_threshold', torch.tensor(300.0))
             self.property_bias = Parameter(torch.zeros(num_heads, 6, 6))
             # Initialize with slight bias toward elements with high melting points
             torch.nn.init.normal_(self.property_bias, mean=0.0, std=0.01)  # Reduced std for stability
@@ -287,7 +287,7 @@ class AlloyTransformer(Module):
         if self.debug_mode:
             print(f"Final output shape: {x.shape}")
 
-        # 🚨 CRITICAL FIX: Masked global pooling instead of simple mean
+        # 🚨 CRITICAL FIX: Fixed masked global pooling for batch size > 1
         if attention_mask is not None:
             # Only average over real positions (ignore padding)
             mask_expanded = attention_mask.unsqueeze(-1).float()  # [batch, seq, 1]
@@ -302,10 +302,14 @@ class AlloyTransformer(Module):
             mask_sum = torch.sum(mask_expanded, dim=1)  # [batch, 1]
             
             # Average only over real positions (avoid division by zero)
-            mask_sum = torch.clamp(mask_sum, min=1.0)
-            pooled = sum_x / mask_sum.squeeze(-1)  # [batch, d_model]
+            mask_sum = torch.clamp(mask_sum, min=1.0)  # [batch, 1]
+            
+            # 🚨 CRITICAL FIX: Don't squeeze! Keep the dimension for proper broadcasting
+            pooled = sum_x / mask_sum  # [batch, d_model] / [batch, 1] = [batch, d_model]
             
             if self.debug_mode:
+                print(f"sum_x shape: {sum_x.shape}")
+                print(f"mask_sum shape: {mask_sum.shape}")
                 print(f"Masked pooled output shape: {pooled.shape}")
                 print(f"Average pooling over real positions only")
         else:
@@ -317,55 +321,53 @@ class AlloyTransformer(Module):
         # Final prediction
         melting_point = self.regression_head(pooled).squeeze(-1)
         return melting_point
+# if __name__ == "__main__":
+#     from dataloader import LM_Dataset, collate_fn
+#     from torch.utils.data import DataLoader
 
-
-if __name__ == "__main__":
-    from dataloader import LM_Dataset, collate_fn
-    from torch.utils.data import DataLoader
-
-    dataloader = DataLoader(
-        dataset=LM_Dataset("./Data/example.csv"), collate_fn=collate_fn, batch_size=1
-    )
+#     dataloader = DataLoader(
+#         dataset=LM_Dataset("./Data/example.csv"), collate_fn=collate_fn, batch_size=1
+#     )
     
-    # 🚨 CRITICAL CHANGES: Reduced model size for extrapolation
-    model = AlloyTransformer(
-        feature_dim=5,
-        d_model=128,           # 🔧 REDUCED from 1024 to 128
-        num_head=4,            # 🔧 REDUCED from 16 to 4
-        num_transformer_layers=2,  # 🔧 REDUCED from 3 to 2
-        num_regression_head_layers=2,  # 🔧 REDUCED from 3 to 2
-        dropout=0.4,           # 🔧 INCREASED from 0.1 to 0.4
-        num_positions=6,
-        dim_feedforward=256,   # 🔧 REDUCED from 512 to 256
-        use_property_focus=True,
-        debug_mode=False        # 🔧 ADDED: Enable debugging for testing
-    )
+#     # 🚨 CRITICAL CHANGES: Reduced model size for extrapolation
+#     model = AlloyTransformer(
+#         feature_dim=5,
+#         d_model=128,           # 🔧 REDUCED from 1024 to 128
+#         num_head=4,            # 🔧 REDUCED from 16 to 4
+#         num_transformer_layers=2,  # 🔧 REDUCED from 3 to 2
+#         num_regression_head_layers=2,  # 🔧 REDUCED from 3 to 2
+#         dropout=0.4,           # 🔧 INCREASED from 0.1 to 0.4
+#         num_positions=6,
+#         dim_feedforward=256,   # 🔧 REDUCED from 512 to 256
+#         use_property_focus=True,
+#         debug_mode=False        # 🔧 ADDED: Enable debugging for testing
+#     )
 
-    # Calculate and display model parameters
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+#     # Calculate and display model parameters
+#     total_params = sum(p.numel() for p in model.parameters())
+#     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     
-    print(f"\n{'='*60}")
-    print(f"MODEL PARAMETER COUNT")
-    print(f"{'='*60}")
-    print(f"Total parameters: {total_params:,}")
-    print(f"Trainable parameters: {trainable_params:,}")
-    print(f"Expected parameter range for extrapolation: < 1,000,000")
-    print(f"Status: {'✅ GOOD' if total_params < 1000000 else '❌ TOO LARGE'}")
-    print(f"{'='*60}\n")
+#     print(f"\n{'='*60}")
+#     print(f"MODEL PARAMETER COUNT")
+#     print(f"{'='*60}")
+#     print(f"Total parameters: {total_params:,}")
+#     print(f"Trainable parameters: {trainable_params:,}")
+#     print(f"Expected parameter range for extrapolation: < 1,000,000")
+#     print(f"Status: {'✅ GOOD' if total_params < 1000000 else '❌ TOO LARGE'}")
+#     print(f"{'='*60}\n")
 
-    for batch in dataloader:
-        composition_tensor, target_tensor, attention_mask = batch
-        print(f'Features shape: {composition_tensor.shape}')
-        print(f'Target shape: {target_tensor.shape}')
-        print(f'Attention mask shape: {attention_mask.shape}')
-        print(f'Attention mask: {attention_mask}')
+#     for batch in dataloader:
+#         composition_tensor, target_tensor, attention_mask = batch
+#         print(f'Features shape: {composition_tensor.shape}')
+#         print(f'Target shape: {target_tensor.shape}')
+#         print(f'Attention mask shape: {attention_mask.shape}')
+#         print(f'Attention mask: {attention_mask}')
 
-        output = model(composition_tensor, attention_mask)
-        print(50 * "==")
-        print(f"Model output: {output.item()}")
-        # break  # Only test first batch
+#         output = model(composition_tensor, attention_mask)
+#         print(50 * "==")
+#         print(f"Model output: {output.item()}")
+#         # break  # Only test first batch
 
-    print(f"\n🎯 Model is ready for pentanary extrapolation training!")
-    print(f"Parameters: {total_params:,} (target: <1M)")
-    print(f"Architecture: {model.d_model}d × {len(model.layers)}L × {model.layers[0][1].num_heads if hasattr(model.layers[0][1], 'num_heads') else 'N/A'}H")
+#     print(f"\n🎯 Model is ready for pentanary extrapolation training!")
+#     print(f"Parameters: {total_params:,} (target: <1M)")
+#     print(f"Architecture: {model.d_model}d × {len(model.layers)}L × {model.layers[0][1].num_heads if hasattr(model.layers[0][1], 'num_heads') else 'N/A'}H")
