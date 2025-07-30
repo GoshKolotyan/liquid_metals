@@ -9,12 +9,8 @@ from datetime import datetime
 
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor, TQDMProgressBar, RichProgressBar
-try:
-    from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBarTheme
-    from lightning.pytorch.callbacks import RichProgressBar
-except ImportError:
-    from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
-    from pytorch_lightning.callbacks import RichProgressBar
+from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBarTheme
+
 from configs import ConfigLoader, ModelConfig
 from trainer import AlloyTransformerLightning
 from helper import create_model_loader, save_config, save_final_model, get_next_version

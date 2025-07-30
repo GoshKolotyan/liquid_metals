@@ -80,13 +80,13 @@ class AlloyTransformerLightning(pl.LightningModule):
 
     def forward(self, x: torch.Tensor, attention_mask: torch.Tensor = None) -> torch.Tensor:
         """
-        🚨 CRITICAL FIX: Forward method now accepts and passes attention_mask
+        Forward method now accepts and passes attention_mask
         """
         return self.model(x, attention_mask=attention_mask)
 
     def training_step(self, batch: torch.Tensor) -> torch.Tensor:
         """
-        🚨 CRITICAL FIX: Corrected unpacking order and attention mask usage
+        Corrected unpacking order and attention mask usage
         """
         # Correct unpacking order: inputs, targets, attention_mask
         inputs, targets, attention_mask = batch  # 🔧 FIXED: was inputs, masks, targets
@@ -105,7 +105,7 @@ class AlloyTransformerLightning(pl.LightningModule):
 
     def validation_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
         """
-        🚨 CRITICAL FIX: Corrected unpacking order and attention mask usage
+        Corrected unpacking order and attention mask usage
         """
         # Correct unpacking order: inputs, targets, attention_mask
         inputs, targets, attention_mask = batch  # 🔧 FIXED: was inputs, masks, targets
@@ -327,7 +327,7 @@ class AlloyTransformerLightning(pl.LightningModule):
 
     def test_step(self, batch: torch.Tensor) -> torch.Tensor:
         """
-        🚨 CRITICAL FIX: Added attention mask support to test step
+        Added attention mask support to test step
         """
         # Handle both 2-item and 3-item batch formats
         if len(batch) == 3:
@@ -369,12 +369,12 @@ class AlloyTransformerLightning(pl.LightningModule):
 
     def configure_optimizers(self):
         """
-        🔧 ENHANCED: Added support for weight_decay if specified in config
+        Added support for weight_decay if specified in config
         """
         optimizer = torch.optim.AdamW(
             self.parameters(), 
             lr=self.hparams.learning_rate,
-            weight_decay=0.1  # 🔧 ADDED: weight_decay support
+            weight_decay=0.1  
         )
 
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(

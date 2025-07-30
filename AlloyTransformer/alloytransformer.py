@@ -28,7 +28,7 @@ class PropertyFocusedAttention(Module):
         self.v_proj = Linear(d_model, d_model)
         self.out_proj = Linear(d_model, d_model)
 
-        # 🔧 FIXED: Property bias initialization (was overwriting itself)
+        # Property bias initialization (was overwriting itself)
         if property_bias:
             # Enhanced property bias for better attention patterns
             self.register_buffer('melting_point_threshold', torch.tensor(300.0))
@@ -69,7 +69,7 @@ class PropertyFocusedAttention(Module):
                 scores = scores + bias
             # If sequence is longer, skip bias (shouldn't happen with current data)
 
-        # 🚨 CRITICAL FIX: Apply attention mask
+        # Apply attention mask
         if attention_mask is not None:
             # Expand mask for multi-head attention
             # attention_mask: [batch, seq_len] → [batch, 1, 1, seq_len]
@@ -167,7 +167,7 @@ class AlloyTransformer(Module):
             attention_mask: Boolean tensor [batch_size, seq_len] - True for real data, False for padding
         """
         
-        # 🚨 CRITICAL FIX: Handle shuffling with attention mask
+        # Handle shuffling with attention mask
         if self.training and attention_mask is not None:
             shuffled_x = x.clone()
             shuffled_mask = attention_mask.clone()
@@ -216,7 +216,7 @@ class AlloyTransformer(Module):
         if self.debug_mode:
             print(f"x shape after feature embedding: {x.shape}")
 
-        # 🚨 CRITICAL FIX: Apply role embeddings (was commented out!)
+        # Apply role embeddings (was commented out!)
         batch_size, seq_len = x.shape[0], x.shape[1]
         
         # Truncate or expand role embeddings to match actual sequence length
@@ -244,7 +244,7 @@ class AlloyTransformer(Module):
                 print(50 * "==")
             norm_x = layer_norm1(x)
             
-            # 🚨 CRITICAL FIX: Apply attention with masking
+            # Apply attention with masking
             if isinstance(attn, PropertyFocusedAttention):
                 if self.debug_mode:
                     print(18*"==", f"Using PropertyFocusedAttention", 16*"==")
@@ -287,7 +287,7 @@ class AlloyTransformer(Module):
         if self.debug_mode:
             print(f"Final output shape: {x.shape}")
 
-        # 🚨 CRITICAL FIX: Fixed masked global pooling for batch size > 1
+        # Fixed masked global pooling for batch size > 1
         if attention_mask is not None:
             # Only average over real positions (ignore padding)
             mask_expanded = attention_mask.unsqueeze(-1).float()  # [batch, seq, 1]
@@ -304,7 +304,7 @@ class AlloyTransformer(Module):
             # Average only over real positions (avoid division by zero)
             mask_sum = torch.clamp(mask_sum, min=1.0)  # [batch, 1]
             
-            # 🚨 CRITICAL FIX: Don't squeeze! Keep the dimension for proper broadcasting
+            # Don't squeeze! Keep the dimension for proper broadcasting
             pooled = sum_x / mask_sum  # [batch, d_model] / [batch, 1] = [batch, d_model]
             
             if self.debug_mode:
@@ -329,18 +329,17 @@ class AlloyTransformer(Module):
 #         dataset=LM_Dataset("./Data/example.csv"), collate_fn=collate_fn, batch_size=1
 #     )
     
-#     # 🚨 CRITICAL CHANGES: Reduced model size for extrapolation
 #     model = AlloyTransformer(
 #         feature_dim=5,
-#         d_model=128,           # 🔧 REDUCED from 1024 to 128
-#         num_head=4,            # 🔧 REDUCED from 16 to 4
-#         num_transformer_layers=2,  # 🔧 REDUCED from 3 to 2
-#         num_regression_head_layers=2,  # 🔧 REDUCED from 3 to 2
-#         dropout=0.4,           # 🔧 INCREASED from 0.1 to 0.4
+        # d_model=128,           # from 1024 to 128
+#         num_head=4,             #from 16 to 4
+#         num_transformer_layers=2,#   from 3 to 2
+#         num_regression_head_layers=2,#   from 3 to 2
+#         dropout=0.4,           # from 0.1 to 0.4
 #         num_positions=6,
-#         dim_feedforward=256,   # 🔧 REDUCED from 512 to 256
+#         dim_feedforward=256,    #from 512 to 256
 #         use_property_focus=True,
-#         debug_mode=False        # 🔧 ADDED: Enable debugging for testing
+#         debug_mode=False        # Enable debugging for testing
 #     )
 
 #     # Calculate and display model parameters
@@ -353,7 +352,6 @@ class AlloyTransformer(Module):
 #     print(f"Total parameters: {total_params:,}")
 #     print(f"Trainable parameters: {trainable_params:,}")
 #     print(f"Expected parameter range for extrapolation: < 1,000,000")
-#     print(f"Status: {'✅ GOOD' if total_params < 1000000 else '❌ TOO LARGE'}")
 #     print(f"{'='*60}\n")
 
 #     for batch in dataloader:
@@ -368,6 +366,5 @@ class AlloyTransformer(Module):
 #         print(f"Model output: {output.item()}")
 #         # break  # Only test first batch
 
-#     print(f"\n🎯 Model is ready for pentanary extrapolation training!")
 #     print(f"Parameters: {total_params:,} (target: <1M)")
 #     print(f"Architecture: {model.d_model}d × {len(model.layers)}L × {model.layers[0][1].num_heads if hasattr(model.layers[0][1], 'num_heads') else 'N/A'}H")

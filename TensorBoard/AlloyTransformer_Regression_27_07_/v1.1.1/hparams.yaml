@@ -1,0 +1,24 @@
+train_path: ./Data/Standard_Training_Split/train.csv
+valid_path: ./Data/Standard_Training_Split/valid.csv
+test_path: ./Data/All_Data_Based_06-06-2025/test_set_for_low_temp.csv
+seed: 42
+learning_rate: 0.0003
+num_epochs: 150
+batch_size: 32
+num_workers: 20
+patience: 10
+gradient_clip: 1.0
+model_version: 1.1
+model_name: AlloyTransformer_Regression_27_07_
+description: Transformer model for alloy property prediction with property-focused
+  attention
+feature_dim: null
+d_model: 128
+num_head: 8
+num_transformer_layers: 3
+num_regression_head_layers: 3
+num_classification_head_layers: 1
+dropout: 0.0
+num_positions: 6
+dim_feedforward: 512
+use_property_focus: true
