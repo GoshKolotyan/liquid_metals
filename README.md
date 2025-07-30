@@ -12,11 +12,9 @@ Our model demonstrates strong predictive capabilities for liquid metal melting p
 
 <div align="center">
 
-![R2 Score](Images/r2_score.png)
-*R² Score Performance*
-
-![Validation Lines](Images/validation_lines.png)
-*Validation Performance*
+| R² Score Performance | Validation Performance |
+|:---:|:---:|
+| ![R2 Score](Images/r2_score.png) | ![Validation Lines](Images/validation_lines.png) |
 
 </div>
 
@@ -114,10 +112,6 @@ pip install -r requirements.txt
 │   ├── dataloader.py            # Data loading
 │   ├── evaluate.py              # Evaluation utilities
 │   ├── helper.py                # Helper functions
-│   ├── images/                  # Generated images
-│   │   ├── attention_weights.png
-│   │   ├── chemical_transformer_graph/
-│   │   └── chemical_transformer_graph.png
 │   ├── main.py                  # Main execution
 │   ├── model.py                 # Model definition
 │   ├── tokenizer.py             # Tokenization
@@ -171,14 +165,6 @@ Total_Samples: 241
 - **Robust Performance**: 75% of predictions within ±1.28°C
 - **Low-Temperature Specialization**: Model excels at the intended low-temperature range
 
-## 🔬 Analysis & Notebooks
-
-The `Notebooks/` directory contains comprehensive analysis:
-
-- **`Evaluation_Analysis.ipynb`**: Complete model performance analysis
-- **`Merging.ipynb`**: Data preprocessing and merging strategies
-- **`Outlayer.ipynb`**: Outlier detection and handling
-- **`Tempreture_dist.ipynb`**: Temperature distribution analysis
 
 ## 🛠️ Model Components
 
@@ -193,14 +179,6 @@ The `Notebooks/` directory contains comprehensive analysis:
 - **Element Vocabulary**: Comprehensive chemical element definitions
 - **Hyperparameter Tuning**: Configurable model parameters
 
-## 📊 Visualization
-
-The project includes comprehensive visualization tools:
-
-- **Attention Weights**: Visual representation of model attention patterns
-- **Training Curves**: R² scores and validation performance over time
-- **Chemical Transformer Graph**: Model architecture visualization
-- **Distribution Plots**: Data and prediction distribution analysis
 
 ## 🤝 Contributing
 
