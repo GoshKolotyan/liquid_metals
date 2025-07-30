@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 
 class AdaptiveLossFunctions:
     """Collection of loss functions suitable for sensitive regression values"""
